@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -87,8 +87,6 @@ void Injector6ISR(void) INT TEXT1; ///< @copydoc Injector1ISR
  *
  * For details on any specific decoder implementation, see the documentation for
  * that specific file.
- *
- * @author Various
  */
 void PrimaryRPMISR(void) INT TEXT1;
 void SecondaryRPMISR(void) INT TEXT1;  ///< @copydoc PrimaryRPMISR
@@ -114,6 +112,14 @@ void SCI0ISR(void) INT TEXT1;          /* Serial 0 interrupt service routine */
 
 void LowVoltageISR(void) INT TEXT1;    /* Low voltage counter ISR */
 void VRegAPIISR(void) INT TEXT1;       /* VReg periodic interrupt ISR */
+void PLLLockISR(void) INT TEXT1;       /* PLL lock lost/gained ISR */
+void SelfClockISR(void) INT TEXT1;     /* Self Clock mode entered/exited ISR */
+
+void SpuriousISR(void) INT TEXT1;      /* Spurious Interrupt ISR */
+void UnimplOpcodeISR(void) INT TEXT1;  /* Unimplemented Opcode ISR */
+void RAMViolationISR(void) INT TEXT1;  /* CPU RAM Access Violation ISR */
+void XGATEErrorISR(void) INT TEXT1;    /* XGATE Software Error ISR */
+
 
 typedef void (* interruptTable)(void);
 

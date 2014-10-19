@@ -19,6 +19,9 @@ TEST_AND_SAVE_ALL:
 BLANK:
 	cd src/main; make clean s19
 
+clean:
+	cd src/main; make clean
+
 SPECIAL: # Can use a dependency here instead. 
 	cd src/main; make clean EvenTeeth-Distributor-4of6and1
 
@@ -47,3 +50,7 @@ DEUCECOUPE:
 	cd src/main; CLIFLAGS="$@" make clean EvenTeeth-Cam-6and1
 PETERTRUCK:
 	cd src/main; CLIFLAGS="$@" make clean MissingTeeth-Cam-12minus1
+SCAVENGER:
+	cd src/main; CLIFLAGS="$@" make clean MitsiAndMazda-CAS-4and2
+DEUCES10:
+	cd src/main; CLIFLAGS="$@" make clean EvenTeeth-Cam-4and1

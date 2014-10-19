@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -149,16 +149,20 @@ typedef struct {
 	unsigned char serialAndCommsCodeErrors;    ///< Sum of checksum, escape mismatches, starts inside, and over/under length
 	unsigned short inputEventTimeTolerance;    ///< Required to tune noise rejection over RPM TODO add to LT1 and MissingTeeth
 
-	// replace highest first to avoid hassles for offset based dave/mtx...
-	unsigned short zsp10; ///< Spare US variable
-	unsigned short zsp9;  ///< Spare US variable
+	// TODO move this up above with the other flags post OLV 0.0.3 release
+	unsigned short flaggableFlags2; ///< Flags to go with our flaggables2 struct.
 
+	// replace highest first to avoid hassles for offset based dave/mtx...
+	unsigned short zsp9;  ///< Spare US variable
 	unsigned short zsp8;  ///< Spare US variable
 	unsigned short zsp7;  ///< Spare US variable
 	unsigned short zsp6;  ///< Spare US variable
-	unsigned short zsp5;  ///< Spare US variable
-	unsigned short zsp4;  ///< Spare US variable
-	unsigned short zsp3;  ///< Spare US variable
+
+	// TODO move these:
+	unsigned short blendAlphaNPercent;  ///< TODO migrate to correct place once OLV/EMStudio are flexible...
+	unsigned short speedDensityAirFlow; ///< TODO migrate to correct place once OLV/EMStudio are flexible...
+	unsigned short alphaNAirFlow;       ///< TODO migrate to correct place once OLV/EMStudio are flexible...
+
 	// Do we want these recorded at log assembly time, or at recording of ADC time, or at calculation of vars (core and/or deriv) or at enabling of scheduling, or all of the above?
 	unsigned short clockInMilliSeconds; ///< Migrate to start of all large datalogs once analysed
 	unsigned short clockIn8thsOfAMilli; ///< Migrate to start of all large datalogs once analysed
@@ -173,8 +177,8 @@ typedef struct { // BIT7 at the top
 	unsigned Spare6 :1;
 	unsigned Spare5 :1;
 	unsigned Spare4 :1;
-	unsigned Spare3 :1;
-	unsigned Spare2 :1;
+	unsigned InjSelfClock :1; ///< @todo document this
+	unsigned InjLostPLL   :1; ///< @todo document this
 	unsigned InjOverBoost :1; ///< @todo document this
 	unsigned InjectionRPM :1; ///< @todo document this
 } injectionCutFlags; // BIT0 at the bottom
@@ -186,8 +190,8 @@ typedef struct { // BIT7 at the top
 	unsigned Spare6 :1;
 	unsigned Spare5 :1;
 	unsigned Spare4 :1;
-	unsigned Spare3 :1;
-	unsigned Spare2 :1;
+	unsigned IgnSelfClock :1; ///< @todo document this
+	unsigned IgnLostPLL   :1; ///< @todo document this
 	unsigned IgnOverBoost :1; ///< @todo document this
 	unsigned IgnitionRPM  :1; ///< @todo document this
 } ignitionCutFlags; // BIT0 at the bottom

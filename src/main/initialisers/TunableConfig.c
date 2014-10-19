@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -63,20 +63,31 @@ const volatile SmallTables1 SmallTablesAFlashV  TUNETABLESDV1 = {
 		dwellDesiredVersusVoltageTable: {
 #if CONFIG == SNOTROCKET_ID
 			Axis:   ARRAY_OF_16_VOLTAGES,
-			Values: { T(7.90),  T(7.90),  T(7.90),  T(7.90),  T(7.90),  T(7.35),  T(6.95),  T(6.50),  T(6.15),  T(5.75),  T(5.48),  T(5.20),  T(4.95),  T(3.80),  T(2.85),  T(2.00)}
+			Values: { T(7.90),  T(7.65),  T(6.00),  T(5.75),  T(5.25),  T(5.00),  T(4.75),  T(4.60),  T(4.50),  T(4.50),  T(4.50),  T(4.00),  T(4.00),  T(3.80),  T(2.85),  T(2.00)}
 #elif CONFIG == HOTEL_ID
 			Axis:   ARRAY_OF_16_VOLTAGES,
 			Values: {T(29.10), T(23.00), T(18.60), T(17.00), T(15.80), T(14.70), T(13.90), T(13.00), T(12.30), T(11.50), T(10.96), T(10.40),  T(9.90),  T(7.60),  T(5.70),  T(4.00)}
 #elif CONFIG == DEUCECOUPE_ID
 			Axis:   ARRAY_OF_16_VOLTAGES,
 			Values: { T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00)}
+#elif CONFIG == DEUCES10_ID
+			Axis:   ARRAY_OF_16_VOLTAGES,
+			Values: { T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00),  T(1.00)}
+#elif CONFIG == SCAVENGER_ID
+			Axis:   ARRAY_OF_16_VOLTAGES,
+			Values: { T(7.90),  T(7.90),  T(7.90),  T(7.90),  T(7.90),  T(7.35),  T(6.95),  T(6.50),  T(6.15),  T(5.75),  T(5.48),  T(5.20),  T(4.95),  T(3.80),  T(2.85),  T(2.00)}
+
 #else
 			Axis:   ARRAY_OF_16_VOLTAGES,
 			Values: ARRAY_OF_16_DWELLS
 #endif
 		},
 
-#if 0
+#if CONFIG == SCAVENGER_ID
+		injectorDeadTimeTable: {
+			Axis: ARRAY_OF_16_VOLTAGES,
+			Values: { T(2.04),  T(1.61),  T(1.30),  T(1.19),  T(1.11),  T(1.03),  T(0.97),  T(0.91),  T(0.86),  T(0.81),  T(0.77),  T(0.73),  T(0.69),  T(0.53),  T(0.40),  T(0.28)}
+		},
 #else
 		injectorDeadTimeTable: {
 			Axis: ARRAY_OF_16_VOLTAGES,
@@ -96,8 +107,13 @@ const volatile SmallTables1 SmallTablesAFlashV  TUNETABLESDV1 = {
 			Values: ARRAY_OF_16_PERCENTS
 		},
 		primingVolumeTable: {
+#if CONFIG == DEUCES10_ID
+			Axis:   ARRAY_OF_16_TEMPS,
+			Values: {T(14.00), T(13.00), T(12.00), T(11.00), T(10.00), T(10.00), T(9.00), T(9.00), T(8.00), T(8.00), T(7.00), T(7.00), T(6.50), T(6.00), T(6.00), T(5.00)}
+#else
 			Axis:   ARRAY_OF_16_TEMPS,
 			Values: ARRAY_OF_16_VOLUMES
+#endif
 		},
 		engineTempEnrichmentTablePercent: {
 			Axis:   ARRAY_OF_16_TEMPS,
@@ -107,9 +123,11 @@ const volatile SmallTables1 SmallTablesAFlashV  TUNETABLESDV1 = {
 			Axis:   ARRAY_OF_16_RPMS,
 			Values: ARRAY_OF_16_DIS6_DWELLS
 		},
+		blendVersusRPMTable: {
+			Axis:   ARRAY_OF_16_RPMS,
+			Values: ARRAY_OF_16_BLENDS
+		},
 		filler: {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2011-2012 Fred Cooke
+ * Copyright 2011-2014 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -33,7 +33,7 @@
  */
 
 
-#define DECODER_MAX_CODE_TIME    100 // To be optimised (shortened)!
+#define DECODER_MAX_CODE_TIME    150 // To be optimised (shortened)!
 #define NUMBER_OF_REAL_EVENTS     10
 #define NUMBER_OF_VIRTUAL_EVENTS  10
 
@@ -47,7 +47,7 @@
 // Variables unique to this decoder, should be kept to a minimum!
 static unsigned short edgeTimeStamp; /// @todo TODO why is this here, and why is it static/shared, investigate
 static LongTime timeStamp; /// @todo TODO why is this here, and why is it static/shared, investigate
-unsigned char unknownEdges = 0;
+unsigned char unknownLeadingEdges = 0;
 
 
 // Event angle setup via defines to minimise the opportunity for human error when changing values

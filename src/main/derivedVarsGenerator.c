@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -60,13 +60,7 @@ void generateDerivedVars(){
 		// TODO add maf calc load option here
 	}else{ /* Default to MAP, but throw error */
 		DerivedVars->LoadMain = CoreVars->MAP;
-		/* If anyone is listening, let them know something is wrong */
-		sendErrorIfClear(LOAD_NOT_CONFIGURED_CODE); // or maybe queue it?
 	}
-
-
-	/* Look up VE with RPM and Load */
-	DerivedVars->VEMain = lookupMainTable(CoreVars->RPM, DerivedVars->LoadMain, VETableMainLocationID);
 
 
 	/* Look up target Lambda with RPM and Load */

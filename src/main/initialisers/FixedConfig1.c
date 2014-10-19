@@ -55,6 +55,9 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 #elif SEANKR1 // No ID assigned yet!
 		perCylinderVolume:  CYLINDER_VOLUME(250),
 		injectorFlow:       CC_PER_MINUTE(230), // http://www.witchhunter.com/flowdatapix/bcdh210.jpg
+#elif CONFIG == SNOTROCKET_ID
+		perCylinderVolume:  CYLINDER_VOLUME(525),
+		injectorFlow:       CC_PER_MINUTE(310),
 #elif CONFIG == SLATER_ID
 		perCylinderVolume:  CYLINDER_VOLUME(324),
 		injectorFlow:       CC_PER_MINUTE(320),
@@ -64,6 +67,12 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 #elif CONFIG == DEUCECOUPE_ID
 		perCylinderVolume:  CYLINDER_VOLUME(522),
 		injectorFlow:       CC_PER_MINUTE(235),
+#elif CONFIG == DEUCES10_ID
+		perCylinderVolume:  CYLINDER_VOLUME(548),
+		injectorFlow:       CC_PER_MINUTE(235),
+#elif CONFIG == SCAVENGER_ID
+		perCylinderVolume:  CYLINDER_VOLUME(399.25),
+		injectorFlow:       CC_PER_MINUTE(540),
 #else
 		perCylinderVolume:  CYLINDER_VOLUME(500),
 		injectorFlow:       CC_PER_MINUTE(550),
@@ -123,13 +132,13 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 		numberOfConfiguredOutputEvents:             16, // First half ignition, second half injection
 		numberOfInjectionsPerEngineCycle:            2  // Full sync semi-sequential
 
-#elif CONFIG == SNOTROCKET_ID // http://forum.diyefi.org/viewtopic.php?f=3&t=1263 Sim's 2.1 Volvo, carbed with CNP using LS1 coils.
-		anglesOfTDC: {ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540)}, // 1,2,3,4: Firing order: 1-3-4-2 set up in loom
-		outputEventPinNumbers:           {0,1,2,3}, // COP/CNP ignition only
-		schedulingConfigurationBits:     {0,0,0,0}, // All ignition
-		decoderEngineOffset:         ANGLE(482.00), // Volvo B21A with DSM/Miata CAS + 24and1 disk
-		numberOfConfiguredOutputEvents:          4, // COP setup
-		numberOfInjectionsPerEngineCycle:        1  // Ditto
+#elif CONFIG == SNOTROCKET_ID // http://forum.diyefi.org/viewtopic.php?f=3&t=1263 Sim's 2.1 Volvo, semi-squential fuel with CNP using LS1 coils.
+		anglesOfTDC: {ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540), ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540)}, // 1,2,3,4: Firing order: 1-3-4-2 set up in loom
+		outputEventPinNumbers:           {0,1,2,3,4,5,4,5}, // COP/CNP ignition, semi-sequential fuel
+		schedulingConfigurationBits:     {0,0,0,0,1,1,1,1}, // First four ignition, last four fuel
+		decoderEngineOffset:         ANGLE(566.00), // Volvo B21A with DSM/Miata CAS + 24and1 disk
+		numberOfConfiguredOutputEvents:                  8, // COP PT2-PT5, injectors drivers wired to PT6 and PT7, pulse-paired, until Xgate
+		numberOfInjectionsPerEngineCycle:                2  // Syncronized semi-sequential
 
 #elif CONFIG == SPUDMN_ID // http://forum.diyefi.org/viewtopic.php?f=55&t=1507 Spudmn's mk1 racing mini in NZ :-)
 		anglesOfTDC: {ANGLE(0), ANGLE(180)}, // 1 and 4, 2 and 3
@@ -163,6 +172,14 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 		numberOfConfiguredOutputEvents:         12, // See three lines above
 		numberOfInjectionsPerEngineCycle:        2  // Semi-sequential, for now.
 
+#elif CONFIG == DEUCES10_ID // Firing order 1-3-4-2 setup in wiring harness http://forum.diyefi.org/viewtopic.php?f=55&t=1962
+		anglesOfTDC: {ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540), ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540)},
+		outputEventPinNumbers:       {0,0,0,0,2,3,4,5}, // DIS E-dizzy and Sequential (2 == Port-T4)
+		schedulingConfigurationBits: {0,0,0,0,1,1,1,1}, // First 4 ign, Last 4 fuel
+		decoderEngineOffset:           ANGLE(0.00), // GM DIS 2x Reference signal is at 0 degrees.
+		numberOfConfiguredOutputEvents:          8, // 4 coil events and  4 injector events.
+		numberOfInjectionsPerEngineCycle:        1  // Sequential Fueling!
+
 #elif CONFIG == PETERTRUCK_ID // Firing order 1-5-3-6-2-4
 		anglesOfTDC: {ANGLE(0), ANGLE(120), ANGLE(240), ANGLE(360), ANGLE(480), ANGLE(600)},
 		outputEventPinNumbers:       {0,4,2,5,1,3}, // An example of wiring your engine with cylinder one on output one, harder to grok
@@ -170,6 +187,14 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 		decoderEngineOffset:           ANGLE(0.00), // Trim fuel injection END point with this value.
 		numberOfConfiguredOutputEvents:          6, // THESE ARE IGN, THEY ARE NOT FUEL
 		numberOfInjectionsPerEngineCycle:        1  // Sequential, baby, yeah!
+
+#elif CONFIG == SCAVENGER_ID // hentai
+		anglesOfTDC: {ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540), ANGLE(0), ANGLE(180), ANGLE(360), ANGLE(540)},
+		outputEventPinNumbers:       {0,1,0,1,2,3,2,3}, // Wasted spark, semi-sequential TODO migrate this to sequential
+		schedulingConfigurationBits: {0,0,0,0,1,1,1,1}, // First four ignition, last four injection
+		decoderEngineOffset:      ANGLE(128), // Hentai initial setup value, will change a bit
+		numberOfConfiguredOutputEvents:              8, // See two lines above
+		numberOfInjectionsPerEngineCycle:            2  // Semi-sequential, for now.
 
 #else // Nothing scheduled by default, no sensible default for all possible vehicle setups.
 		anglesOfTDC:                            {}, // Depends on cylinder count and other variables
@@ -182,12 +207,21 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 	},
 	cutAndLimiterSettings:{
 		InjectionRPM:{
-#if CONFIG == SLATER_ID
+#if CONFIG == SNOTROCKET_ID
+			disableThreshold:  RPM(6300),
+			reenableThreshold: RPM(6200)
+#elif CONFIG == SLATER_ID
 			disableThreshold:  RPM(7000),
 			reenableThreshold: RPM(6900)
+#elif CONFIG == DEUCES10_ID
+			disableThreshold:  RPM(5600),
+			reenableThreshold: RPM(5400)
+#elif CONFIG == SCAVENGER_ID
+			disableThreshold:  RPM(7200),
+			reenableThreshold: RPM(7150)
 #else
-			disableThreshold:  RPM(5000),
-			reenableThreshold: RPM(4900)  // Come back on before ignition does
+			disableThreshold:  RPM(5850),
+			reenableThreshold: RPM(5800)  // Come back on before ignition does
 #endif
 		},
 		IgnitionRPM:{
@@ -196,7 +230,7 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 			reenableThreshold: RPM(5700) // Nice and close to save the exhaust
 #elif CONFIG == SNOTROCKET_ID
 			disableThreshold:  RPM(6300),
-			reenableThreshold: RPM(6200)
+			reenableThreshold: RPM(6150)
 #elif CONFIG == SLATER_ID
 			disableThreshold:  RPM(7000),
 			reenableThreshold: RPM(6850)
@@ -206,14 +240,20 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 #elif CONFIG == PETERTRUCK_ID
 			disableThreshold:  RPM(5000),
 			reenableThreshold: RPM(4950)
+#elif CONFIG == DEUCES10_ID
+			disableThreshold:  RPM(5600),
+			reenableThreshold: RPM(5300)
+#elif CONFIG == SCAVENGER_ID
+			disableThreshold:  RPM(7200),
+			reenableThreshold: RPM(7100)
 #else
-			disableThreshold:  RPM(5000),
-			reenableThreshold: RPM(4800)  // Come back on after injection does
+			disableThreshold:  RPM(5800),
+			reenableThreshold: RPM(5750)  // Come back on after injection does
 #endif
 		},
 		OverBoost:{
 			disableThreshold:  KPA(250), // Cut close to std sensor max
-			reenableThreshold: KPA(100)  // Re enable when boost gone all together (force driver to lift)
+			reenableThreshold: KPA(105)  // Re enable when boost gone all together (Setting to anything at or below 100kPa can cause a dead engine)
 		},
 		cutsEnabled:{
 			InjectionRPM: 1,
@@ -239,8 +279,17 @@ const volatile fixedConfig1 fixedConfigs1 FIXEDCONF1 = {
 #if CONFIG == DEUCECOUPE_ID
 			[0] = {
 				variable: &CoreVars0.RPM,
-				upperValue: RPM(800),
-				lowerValue: RPM(700),
+				upperValue: RPM(400),
+				lowerValue: RPM(300),
+				port: (unsigned char*)&PORTT,
+				mask: BIT3,
+				flags: 0
+			},
+#elif CONFIG == DEUCES10_ID
+			[0] = {
+				variable: &CoreVars0.RPM,
+				upperValue: RPM(400),
+				lowerValue: RPM(300),
 				port: (unsigned char*)&PORTT,
 				mask: BIT3,
 				flags: 0

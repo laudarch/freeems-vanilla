@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke, Sean Keys
+ * Copyright 2008-2012 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -121,7 +121,7 @@ void RTIISR(){
 
 				// temp fuel pump prime and safety off impl
 				if(coreStatusA & FUEL_PUMP_PRIME){
-					if(Clocks.secondsToMinutes == 4){
+					if(Clocks.secondsToMinutes == fixedConfigs2.sensorSettings.fuelPumpPrimePeriod){
 						coreStatusA &= CLEAR_FUEL_PUMP_PRIME;
 						PORTA &= NBIT7;
 					}

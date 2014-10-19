@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -53,14 +53,14 @@ typedef struct {
 	unsigned char callsToUISRs;                    ///< to ensure we aren't accidentally triggering unused ISRs.
 	unsigned char lowVoltageConditions;            ///< low voltage conditions.
 #define FLAG_CALLS_TO_UISRS_OFFSET                 0
-#define FLAG_LOW_VOLTATE_CONDITION_OFFSET          1
+#define FLAG_LOW_VOLTAGE_CONDITION_OFFSET          1
 
 	// RPM/Position input
 	unsigned char decoderSyncLosses;               ///< Number of times cam, crank or combustion sync is lost.
-	unsigned char spare;                           ///< Spare.
+	unsigned char decoderSyncsNotConfirmed;        ///< How many times we cleared sync state without having yet accumulated enough confirmations.
 	unsigned char decoderSyncStateClears;          ///< Sync loss called when not synced yet, thus discarding data and preventing sync.
 #define FLAG_DECODER_SYNC_LOSSES_OFFSET            2
-#define FLAG_SPARE_OFFSET                          3
+#define FLAG_DECODER_SYNCS_NOT_CONFIRMED_OFFSET    3
 #define FLAG_DECODER_SYNC_STATE_CLEARS_OFFSET      4
 
 	// If you're getting these, then your serial hardware sucks
@@ -87,12 +87,55 @@ typedef struct {
 #define FLAG_SERIAL_CHECKSUM_MISMATCHES_OFFSET    12
 #define FLAG_SERIAL_PACKETS_UNDER_LENGTH_OFFSET   13
 
-	// Not currently used
-	unsigned char commsDebugMessagesNotSent;       ///< Incremented when a debug message can't be sent due to the TX buffer
-	unsigned char commsErrorMessagesNotSent;       ///< Incremented when an error message can't be sent due to the TX buffer
-#define FLAG_COMMS_DEBUG_MESSAGES_NOT_SENT_OFFSET 14
-#define FLAG_COMMS_ERROR_MESSAGES_NOT_SENT_OFFSET 15
+	unsigned char phaseLockedLoopLockLost;         ///< Incremented when PLL lock is lost
+	unsigned char selfClockModeEntered;            ///< Incremented when the MCU loses main clock
+#define FLAG_PHASE_LOCKED_LOOP_LOCK_LOST_OFFSET   14
+#define FLAG_SELF_CLOCK_MODE_ENTERED_OFFSET       15
 } Flaggable;
+
+
+// Some more Fred Cooke cunning inspired by EssEss
+#define FLAG_AND_INC_FLAGGABLE2(OFFSET)         \
+(*(((unsigned char*)&Flaggables2) + OFFSET))++; \
+KeyUserDebugs.flaggableFlags2 |= (1 << OFFSET);               // End of macro
+
+/// These should all stay at zero, thus they are incremented through a mechanism that also sets a flag in a special variable
+typedef struct {
+	// More error conditions
+	unsigned char spuriousInterrupts;        ///< ? TODO
+	unsigned char unimplementedOpcodes;      ///< ? TODO
+	unsigned char RAMAccessViolations;       ///< ? TODO
+	unsigned char XGATESoftwareErrors;       ///< ? TODO
+#define FLAG_SPURIOUS_INTERRUPTS_OFFSET      0
+#define FLAG_UNIMPLEMENTED_OPCODES_OFFSET    1
+#define FLAG_RAM_ACCESS_VIOLATIONS_OFFSET    2
+#define FLAG_XGATE_SOFTWARE_ERRORS_OFFSET    3
+
+	unsigned char spare4;                    ///< Spare flaggable.
+	unsigned char spare5;                    ///< Spare flaggable.
+	unsigned char spare6;                    ///< Spare flaggable.
+	unsigned char spare7;                    ///< Spare flaggable.
+	unsigned char spare8;                    ///< Spare flaggable.
+	unsigned char spare9;                    ///< Spare flaggable.
+	unsigned char spare10;                   ///< Spare flaggable.
+	unsigned char spare11;                   ///< Spare flaggable.
+	unsigned char spare12;                   ///< Spare flaggable.
+	unsigned char spare13;                   ///< Spare flaggable.
+	unsigned char spare14;                   ///< Spare flaggable.
+	unsigned char spare15;                   ///< Spare flaggable.
+#define FLAG_SPARE_4_OFFSET                  4
+#define FLAG_SPARE_5_OFFSET                  5
+#define FLAG_SPARE_6_OFFSET                  6
+#define FLAG_SPARE_7_OFFSET                  7
+#define FLAG_SPARE_8_OFFSET                  8
+#define FLAG_SPARE_9_OFFSET                  9
+#define FLAG_SPARE_10_OFFSET                10
+#define FLAG_SPARE_11_OFFSET                11
+#define FLAG_SPARE_12_OFFSET                12
+#define FLAG_SPARE_13_OFFSET                13
+#define FLAG_SPARE_14_OFFSET                14
+#define FLAG_SPARE_15_OFFSET                15
+} Flaggable2;
 
 
 /// Use this block to manage the various clocks kept.

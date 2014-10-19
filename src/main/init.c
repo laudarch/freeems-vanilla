@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -86,8 +86,7 @@ void init(){
 
 /** @brief Set the PLL clock frequency
  *
- * Set the Phase Locked Loop to our desired frequency (80MHz) and switch to
- * using it for clock (40MHz bus speed).
+ * Set the Phase Locked Loop to our desired frequency (80MHz) and enable PLL.
  */
 void initPLL(){
 	CLKSEL &= PLLSELOFF;  /* Switches to base external OSCCLK to ensure PLL is not being used (off out of reset, but not sure if the monitor turns it on before passing control or not) */
@@ -95,14 +94,25 @@ void initPLL(){
 	REFDV = PLLDIVISOR;   /* 16MHz / (3 + 1) = 4MHz Bus frequency */
 	SYNR = PLLMULTIPLIER; /* 4MHz * (9 + 1) = 40MHz Bus frequency */
 	PLLCTL |= PLLON;      /* Turn the PLL device back on again at 80MHz */
+	enablePLL();
+}
 
+/** @brief Switch to using PLL
+ *
+ * Switch to using PLL for clock (40MHz bus speed). Interrupt is enabled elsewhere.
+ *
+ * Note: Requires busy wait loop, only for init and emergency use.
+ *
+ * @todo Should be limited, and have break out with error code and fall back mechanism.
+ */
+void enablePLL(){
 	while (!(CRGFLG & PLLLOCK)){
 		/* Do nothing while we wait till the PLL loop locks onto the target frequency. */
 		/* Target frequency is given by (2 * (crystal frequency / (REFDV + 1)) * (SYNR + 1)) */
 		/* Bus frequency is half PLL frequency and given by ((crystal frequency / (REFDV + 1)) * (SYNR + 1)) */
 	}
 
-	CLKSEL = PLLSELON; /* Switches to PLL clock for internal bus frequency      */
+	CLKSEL = PLLSEL; /* Switches to PLL clock for internal bus frequency        */
 	/* from MC9S12XDP512V2.pdf Section 2.4.1.1.2 page 101 Third paragraph       */
 	/* "This takes a MAXIMUM of 4 OSCCLK clock cylces PLUS 4 PLL clock cycles"  */
 	/* "During this time ALL clocks freeze, and CPU activity ceases"            */
@@ -232,11 +242,11 @@ void initFuelAddresses(){
 	/* Setup addresses within the page to avoid warnings */
 	VETableMainFlashLocation       = (void*)&VETableMainFlash;
 	VETableSecondaryFlashLocation  = (void*)&VETableSecondaryFlash;
-	VETableTertiaryFlashLocation   = (void*)&VETableTertiaryFlash;
+	AirflowTableFlashLocation      = (void*)&AirflowTableFlash;
 	LambdaTableFlashLocation       = (void*)&LambdaTableFlash;
 	VETableMainFlash2Location      = (void*)&VETableMainFlash2;
 	VETableSecondaryFlash2Location = (void*)&VETableSecondaryFlash2;
-	VETableTertiaryFlash2Location  = (void*)&VETableTertiaryFlash2;
+	AirflowTableFlash2Location     = (void*)&AirflowTableFlash2;
 	LambdaTableFlash2Location      = (void*)&LambdaTableFlash2;
 }
 
@@ -250,12 +260,12 @@ void initPagedRAMFuel(void){
 	RPAGE = RPAGE_FUEL_ONE;
 	memcpy((void*)&TablesA, VETableMainFlashLocation,       sizeof(mainTable));
 	memcpy((void*)&TablesB, VETableSecondaryFlashLocation,  sizeof(mainTable));
-	memcpy((void*)&TablesC, VETableTertiaryFlashLocation,   sizeof(mainTable));
+	memcpy((void*)&TablesC, AirflowTableFlashLocation,      sizeof(mainTable));
 	memcpy((void*)&TablesD, LambdaTableFlashLocation,       sizeof(mainTable));
 	RPAGE = RPAGE_FUEL_TWO;
 	memcpy((void*)&TablesA, VETableMainFlash2Location,      sizeof(mainTable));
 	memcpy((void*)&TablesB, VETableSecondaryFlash2Location, sizeof(mainTable));
-	memcpy((void*)&TablesC, VETableTertiaryFlash2Location,  sizeof(mainTable));
+	memcpy((void*)&TablesC, AirflowTableFlash2Location,     sizeof(mainTable));
 	memcpy((void*)&TablesD, LambdaTableFlash2Location,      sizeof(mainTable));
 }
 
@@ -327,6 +337,8 @@ void initTunableAddresses(){
 	engineTempEnrichmentTablePercent2Location = (void*)&SmallTablesAFlash2.engineTempEnrichmentTablePercent;
 	dwellVersusRPMTableLocation               = (void*)&SmallTablesAFlash.dwellVersusRPMTable;
 	dwellVersusRPMTable2Location              = (void*)&SmallTablesAFlash2.dwellVersusRPMTable;
+	blendVersusRPMTableLocation               = (void*)&SmallTablesAFlash.blendVersusRPMTable;
+	blendVersusRPMTable2Location              = (void*)&SmallTablesAFlash2.blendVersusRPMTable;
 
 	/* TablesB */
 	loggingSettingsLocation       = (void*)&SmallTablesBFlash.loggingSettings;
@@ -436,18 +448,18 @@ void initVariables(){
 	ticksPerDegreeRecord = &ticksPerDegree1; // TODO temp, remove, maybe
 
 	/* Setup the pointers to the registers for fueling use, this does NOT work if done in global.c, I still don't know why. */
-	injectorMainTimeRegisters[0] = TC2_ADDR;
-	injectorMainTimeRegisters[1] = TC3_ADDR;
-	injectorMainTimeRegisters[2] = TC4_ADDR;
-	injectorMainTimeRegisters[3] = TC5_ADDR;
-	injectorMainTimeRegisters[4] = TC6_ADDR;
-	injectorMainTimeRegisters[5] = TC7_ADDR;
-	injectorMainControlRegisters[0] = TCTL2_ADDR;
-	injectorMainControlRegisters[1] = TCTL2_ADDR;
-	injectorMainControlRegisters[2] = TCTL1_ADDR;
-	injectorMainControlRegisters[3] = TCTL1_ADDR;
-	injectorMainControlRegisters[4] = TCTL1_ADDR;
-	injectorMainControlRegisters[5] = TCTL1_ADDR;
+	ectMainTimeRegisters[0] = TC2_ADDR;
+	ectMainTimeRegisters[1] = TC3_ADDR;
+	ectMainTimeRegisters[2] = TC4_ADDR;
+	ectMainTimeRegisters[3] = TC5_ADDR;
+	ectMainTimeRegisters[4] = TC6_ADDR;
+	ectMainTimeRegisters[5] = TC7_ADDR;
+	ectMainControlRegisters[0] = TCTL2_ADDR;
+	ectMainControlRegisters[1] = TCTL2_ADDR;
+	ectMainControlRegisters[2] = TCTL1_ADDR;
+	ectMainControlRegisters[3] = TCTL1_ADDR;
+	ectMainControlRegisters[4] = TCTL1_ADDR;
+	ectMainControlRegisters[5] = TCTL1_ADDR;
 
 	coreStatusA |= FUEL_PUMP_PRIME;
 
@@ -660,8 +672,9 @@ void initInterrupts(){
 	/* Set up the Real Time Interrupt */
 	RTICTL = 0x81; /* 0b_1000_0001 0.125ms/125us period http://duckduckgo.com/?q=1+%2F+%2816MHz+%2F+%282+*+10^3%29+%29 */
 //	RTICTL = 0xF9; /* 0b_1111_1001 0.125s/125ms period http://duckduckgo.com/?q=1+%2F+%2816MHz+%2F+%282*10^6%29+%29 */
-	CRGINT |= 0x80; /* Enable the RTI */
-	CRGFLG = 0x80; /* Clear the RTI flag */
+	CRGINT |= (RTIE | PLLLOCKIE | SCMIE); /* Enable the Real Time Interrupt, PLL Lock Interrupt, and Self Clock Mode Interrupt */
+	CRGFLG = (RTIF | PLLLOCKIF | SCMIF); /* Clear the RTI, LOCKI, and SCMI flags */
+	RAMWPC |= AVIE; // Enable the access protection interrupt for XGATE RAM
 
 	// set up port H for testing
 	PPSH = ZEROS; // falling edge/pull up for all

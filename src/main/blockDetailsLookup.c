@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -46,8 +46,7 @@
 /** @brief Lookup memory block details.
  *
  * Flash only blocks leave the RAM address and page values
- * set to zero. ID's that don't exist leave all set to zero.
- * Error handling is to be done externally based on that.
+ * set to zero. ID's that don't exist return an error code.
  *
  * @note This function is an exception to the style rule switch statement
  * blocks of using a {} pair for each case statement. Readability is better
@@ -120,13 +119,13 @@ unsigned short lookupBlockDetails(unsigned short locationID, blockDetails* detai
 		details->RAMAddress = (void*)&TablesB;
 		details->FlashAddress = VETableSecondaryFlashLocation;
 		break;
-	case VETableTertiaryLocationID:
+#endif
+	case AirflowTableLocationID:
 		details->RAMPage = RPAGE_FUEL_ONE;
 		details->FlashPage = FUELTABLES_PPAGE;
 		details->RAMAddress = (void*)&TablesC;
-		details->FlashAddress = VETableTertiaryFlashLocation;
+		details->FlashAddress = AirflowTableFlashLocation;
 		break;
-#endif
 	case LambdaTableLocationID:
 		details->RAMPage = RPAGE_FUEL_ONE;
 		details->FlashPage = FUELTABLES_PPAGE;
@@ -146,11 +145,11 @@ unsigned short lookupBlockDetails(unsigned short locationID, blockDetails* detai
 		details->RAMAddress = (void*)&TablesB;
 		details->FlashAddress = VETableSecondaryFlash2Location;
 		break;
-	case VETableTertiary2LocationID:
+	case AirflowTable2LocationID:
 		details->RAMPage = RPAGE_FUEL_TWO;
 		details->FlashPage = FUELTABLES_PPAGE;
 		details->RAMAddress = (void*)&TablesC;
-		details->FlashAddress = VETableTertiaryFlash2Location;
+		details->FlashAddress = AirflowTableFlash2Location;
 		break;
 	case LambdaTable2LocationID:
 		details->RAMPage = RPAGE_FUEL_TWO;
@@ -323,6 +322,15 @@ unsigned short lookupBlockDetails(unsigned short locationID, blockDetails* detai
 		details->FlashAddress = dwellVersusRPMTableLocation;
 		details->parent = SmallTablesALocationID;
 		break;
+	case blendVersusRPMTableLocationID:
+		details->size = sizeof(twoDTableUS);
+		details->RAMPage = RPAGE_TUNE_ONE;
+		details->FlashPage = TUNETABLES_PPAGE;
+		details->RAMAddress = (void*)&TablesA.SmallTablesA.blendVersusRPMTable;
+		details->FlashAddress = blendVersusRPMTableLocation;
+		details->parent = SmallTablesALocationID;
+		break;
+
 #ifdef ALL_CONFIG
 	case dwellDesiredVersusVoltageTable2LocationID:
 		details->size = sizeof(twoDTableUS);
@@ -380,8 +388,15 @@ unsigned short lookupBlockDetails(unsigned short locationID, blockDetails* detai
 		details->FlashAddress = dwellVersusRPMTable2Location;
 		details->parent = SmallTablesA2LocationID;
 		break;
+	case blendVersusRPMTable2LocationID:
+		details->size = sizeof(twoDTableUS);
+		details->RAMPage = RPAGE_TUNE_TWO;
+		details->FlashPage = TUNETABLES_PPAGE;
+		details->RAMAddress = (void*)&TablesA.SmallTablesA.blendVersusRPMTable;
+		details->FlashAddress = blendVersusRPMTable2Location;
+		details->parent = SmallTablesA2LocationID;
+		break;
 #endif
-
 	/* TablesB small tables */
 	case loggingSettingsLocationID:
 		details->size = sizeof(loggingSetting);
@@ -605,6 +620,11 @@ unsigned short lookupBlockDetails(unsigned short locationID, blockDetails* detai
 		details->size = sizeof(Flaggable);
 		details->RAMPage = RPAGE_LINEAR;
 		details->RAMAddress = &Flaggables;
+		break;
+	case Flaggables2LocationID:
+		details->size = sizeof(Flaggable2);
+		details->RAMPage = RPAGE_LINEAR;
+		details->RAMAddress = &Flaggables2;
 		break;
 
 	default:

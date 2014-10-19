@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2011 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -41,7 +41,7 @@
 
 #define VETableMainFlashV VETableMainFlash2
 #define VETableSecondaryFlashV VETableSecondaryFlash2
-#define VETableTertiaryFlashV VETableTertiaryFlash2
+#define AirflowTableFlashV AirflowTableFlash2
 #define LambdaTableFlashV LambdaTableFlash2
 
 #include "FuelTables.c"

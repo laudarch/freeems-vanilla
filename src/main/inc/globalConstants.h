@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2014 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -62,6 +62,8 @@
 #define FIRMWARE_BUILD_DATE_LENGTH sizeof(FIRMWARE_BUILD_DATE)
 #define COMPILER_VERSION_LENGTH    sizeof(__VERSION__)
 #define OPERATING_SYSTEM_LENGTH    sizeof(OPERATING_SYSTEM)
+#define BUILT_BY_NAME_LENGTH       sizeof(BUILT_BY_NAME)
+#define SUPPORT_EMAIL_LENGTH       sizeof(SUPPORT_EMAIL)
 
 
 /*&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Arrays here &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&*/
@@ -75,21 +77,36 @@ EXTERN const volatile unsigned short MAFTransferTable[1024]; /* 2k */
 EXTERN const volatile unsigned char TestTransferTable[2048]; /* 2k */
 
 
+/** Serial interface unique identifier
+ *
+ * This should only change when the serial interface changes (even a little)
+ *
+ * This field consists of 3 chars for a 3 part version number and a free form string. For any unique string the version
+ * number is also unique. In this way tools can easily support a range of versions for a specific unique string ID
+ */
 EXTERN const unsigned char interfaceVersion[INTERFACE_VERSION_LENGTH];
+
+/** Displayable firmware version identifier
+ *
+ * This changes automatically every time the code is changed at all (even a little) thanks to Git.
+ */
 EXTERN const unsigned char firmwareVersion[FIRMWARE_VERSION_LENGTH];
-EXTERN const unsigned char buildTimeAndDate[FIRMWARE_BUILD_DATE_LENGTH];
-EXTERN const unsigned char compilerVersion[COMPILER_VERSION_LENGTH];
-EXTERN const unsigned char operatingSystem[OPERATING_SYSTEM_LENGTH];
+
+EXTERN const unsigned char buildTimeAndDate[FIRMWARE_BUILD_DATE_LENGTH]; ///< When and roughly where it was built
+EXTERN const unsigned char compilerVersion[COMPILER_VERSION_LENGTH];     ///< GCC supplied compiler version used to build it
+EXTERN const unsigned char operatingSystem[OPERATING_SYSTEM_LENGTH];     ///< Which OS was it built on
+EXTERN const unsigned char builtByName[BUILT_BY_NAME_LENGTH];            ///< Name of the person who built it
+EXTERN const unsigned char supportEmail[SUPPORT_EMAIL_LENGTH];           ///< Support email for this build
 
 
-/* Injection (currently used for both inj and ign) */
-EXTERN const unsigned char injectorMainOnMasks[INJECTION_CHANNELS];
-EXTERN const unsigned char injectorMainOffMasks[INJECTION_CHANNELS];
-EXTERN const unsigned char injectorMainActiveMasks[INJECTION_CHANNELS];
-EXTERN const unsigned char injectorMainEnableMasks[INJECTION_CHANNELS];
-EXTERN const unsigned char injectorMainDisableMasks[INJECTION_CHANNELS];
-EXTERN const unsigned char injectorMainGoHighMasks[INJECTION_CHANNELS];
-EXTERN const unsigned char injectorMainGoLowMasks[INJECTION_CHANNELS];
+/* ECT output register masks */
+EXTERN const unsigned char ectMainOnMasks[ECT_CHANNELS];
+EXTERN const unsigned char ectMainOffMasks[ECT_CHANNELS];
+EXTERN const unsigned char ectMainActiveMasks[ECT_CHANNELS];
+EXTERN const unsigned char ectMainEnableMasks[ECT_CHANNELS];
+EXTERN const unsigned char ectMainDisableMasks[ECT_CHANNELS];
+EXTERN const unsigned char ectMainGoHighMasks[ECT_CHANNELS];
+EXTERN const unsigned char ectMainGoLowMasks[ECT_CHANNELS];
 
 #endif
 
@@ -99,7 +116,7 @@ EXTERN const unsigned char injectorMainGoLowMasks[INJECTION_CHANNELS];
 /* Main lookup tables */ // TODO volatile here or not?
 EXTERN const volatile mainTable VETableMainFlash;
 EXTERN const volatile mainTable VETableSecondaryFlash;
-EXTERN const volatile mainTable VETableTertiaryFlash;
+EXTERN const volatile mainTable AirflowTableFlash;
 EXTERN const volatile mainTable LambdaTableFlash;
 
 EXTERN const volatile mainTable IgnitionAdvanceTableMainFlash;
@@ -109,7 +126,7 @@ EXTERN const volatile mainTable InjectionAdvanceTableSecondaryFlash;
 
 EXTERN const volatile mainTable VETableMainFlash2;
 EXTERN const volatile mainTable VETableSecondaryFlash2;
-EXTERN const volatile mainTable VETableTertiaryFlash2;
+EXTERN const volatile mainTable AirflowTableFlash2;
 EXTERN const volatile mainTable LambdaTableFlash2;
 
 EXTERN const volatile mainTable IgnitionAdvanceTableMainFlash2;
@@ -139,9 +156,9 @@ EXTERN const unsigned long MAFFuelConstant;
 /// @todo TODO Move these to decoder interface AND rename to be more generic/meaningful/accurate, and make set by each decoder where appropriate
 // These need to be changed if the timer period is changed at all
 /* The number of timer units it takes for the switch on scheduling code to run */
-EXTERN const unsigned short injectorSwitchOnCodeTime;
+EXTERN const unsigned short ectSwitchOnCodeTime;
 /* The number of timer units it takes for the switch off scheduling code to run */
-EXTERN const unsigned short injectorSwitchOffCodeTime;
+EXTERN const unsigned short ectSwitchOffCodeTime;
 
 
 #undef EXTERN

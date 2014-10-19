@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -53,7 +53,7 @@ const interruptTable _vectors[] VECTORS = {
 /*	                                                                                                                            */
 
 /* 0xFF10 to 0xFF1F */
-	UISR,           UISR,           UISR,           UISR,           UISR,           UISR,           UISR,           UISR,
+	SpuriousISR,    UISR,           UISR,           UISR,           UISR,           UISR,           UISR,           UISR,
 /*	Spurious        Reserved        Reserved        Reserved        Reserved        Reserved        Reserved        Reserved    */
 /*	                                                                                                                            */
 
@@ -78,7 +78,7 @@ const interruptTable _vectors[] VECTORS = {
 /*	                                                                                                                            */
 
 /* 0xFF60 to 0xFF6F */
-	UISR,           UISR,           UISR,           UISR,           UISR,           UISR,           UISR,           UISR,
+	RAMViolationISR,XGATEErrorISR,  UISR,           UISR,           UISR,           UISR,           UISR,           UISR,
 /*	RAM violation   XGATEsoft error XGATE 7         XGATE 6         XGATE 5         XGATE 4         XGATE 3         XGATE 2     */
 /*	                                                                                                                            */
 
@@ -108,7 +108,7 @@ const interruptTable _vectors[] VECTORS = {
 /*	                                                                                                                            */
 
 /* 0xFFC0 to 0xFFCF */
-	UISR,           UISR,           UISR,           UISR,           UISR,           UISR,           PortHISR,       PortJISR,
+	UISR,           UISR,           SelfClockISR,   PLLLockISR,     UISR,           UISR,           PortHISR,       PortJISR,
 /*	IIC0            Reserved        CRG self clock  CRG PLL lock    PAB Overflow    ModDwnCtrUF     Port H          Port J      */
 /*	                                                                                                                            */
 
@@ -123,7 +123,7 @@ const interruptTable _vectors[] VECTORS = {
 /*	RTOutput 6      RTOutput 5      RTOutput 4      RTOutput 3      RTOutput 2      RTOutput 1      Secondary RPM   Primary RPM */
 
 /* 0xFFF0 to 0xFFFF */
-	RTIISR,         IRQISR,         XIRQISR,        UISR,           UISR,           UISR,           UISR,           _start
+	RTIISR,         IRQISR,         XIRQISR,        UISR,           UnimplOpcodeISR,_start,         _start,         _start
 /*	RTI             IRQ             XIRQ            SWI             UnimpInstruct   COP Reset       ClockReset      SystemReset */
 /*	                                                                                                                Entry point */
 };

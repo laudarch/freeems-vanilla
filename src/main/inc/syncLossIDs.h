@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2011-2012 Fred Cooke
+ * Copyright 2011-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -39,8 +39,10 @@
 #ifndef FILE_SYNC_LOSS_IDS_H_SEEN
 #define FILE_SYNC_LOSS_IDS_H_SEEN
 
-// Special case for buggy code
-#define BUG_REACHED_UNREACHABLE_CODE           0xFF
+// Special cases:
+#define BUG_REACHED_UNREACHABLE_CODE           0xFF // Buggy code indicator, called from places that should not be possible to reach.
+#define PLL_LOCK_LOST_PRECAUTIONARY            0xFE // Forced sync loss due to inaccurate timers from inaccurate clock
+#define SELF_CLOCK_MODE_PRECAUTIONARY          0xFD // Forced sync loss due to inaccurate timers from inaccurate clock
 
 // Special case for timeout
 #define EVENT_ARRIVAL_TIMEOUT                  0

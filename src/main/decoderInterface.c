@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2011-2012 Fred Cooke
+ * Copyright 2011-2014 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -53,13 +53,25 @@ void resetToNonRunningState(unsigned char uniqueLossID){
 		KeyUserDebugs.syncResetCalls++;
 	}
 
+	// Reset the safe re-sync counters.
+	if(fixedConfigs2.decoderSettings.syncConfirmationsRunning == 0xFF){ // Prevent overflow to zero
+		syncConfirmationsRunningCounter = 0xFF;
+	}else{ // Ensure at least 1 cycle is confirmed
+		syncConfirmationsRunningCounter = fixedConfigs2.decoderSettings.syncConfirmationsRunning + 1;
+	}
+	syncConfirmationsStartingCounter = fixedConfigs2.decoderSettings.syncConfirmationsStarting;
+
 	/* Reset RPM to zero */
 	ticksPerDegree0 = 0;
 	ticksPerDegree1 = 0;
 
 	// Keep track of lost sync in counters
 	if(KeyUserDebugs.decoderFlags & (CAM_SYNC | CRANK_SYNC | COMBUSTION_SYNC)){
-		FLAG_AND_INC_FLAGGABLE(FLAG_DECODER_SYNC_LOSSES_OFFSET);
+		if(KeyUserDebugs.decoderFlags & OK_TO_SCHEDULE){
+			FLAG_AND_INC_FLAGGABLE(FLAG_DECODER_SYNC_LOSSES_OFFSET);
+		}else{
+			FLAG_AND_INC_FLAGGABLE(FLAG_DECODER_SYNCS_NOT_CONFIRMED_OFFSET);
+		}
 	}else{
 		FLAG_AND_INC_FLAGGABLE(FLAG_DECODER_SYNC_STATE_CLEARS_OFFSET);
 	}
@@ -67,8 +79,9 @@ void resetToNonRunningState(unsigned char uniqueLossID){
 	// record unique loss ID
 	KeyUserDebugs.syncLostWithThisID = uniqueLossID;
 
-	// record current event
+	// record current event and then clear it
 	KeyUserDebugs.syncLostOnThisEvent = KeyUserDebugs.currentEvent;
+	KeyUserDebugs.currentEvent = 0;
 
 	/* Clear all sync flags to lost state */
 	KeyUserDebugs.decoderFlags = 0; // Nothing should use this except for us anyway!
@@ -97,7 +110,7 @@ void schedulePortTPin(unsigned char outputEventNumber, LongTime timeStamp){
 
 	/// @todo TODO Make this more understandable as right now it is difficult to grok.
 	// determine whether or not to reschedule or self schedule assuming pin is currently scheduled
-	unsigned long diff = (injectorMainEndTimes[pin] + injectorSwitchOffCodeTime) - startTimeLong;
+	unsigned long diff = (ectMainEndTimes[pin] + ectSwitchOffCodeTime) - startTimeLong;
 #define newStartIsAfterOutputEndTimeAndCanSelfSet (diff > LONGHALF)
 // http://forum.diyefi.org/viewtopic.php?f=8&t=57&p=861#p861
 
@@ -110,11 +123,11 @@ void schedulePortTPin(unsigned char outputEventNumber, LongTime timeStamp){
 */
 
 	// Is it enabled and about to do *something*?
-	if(TIE & injectorMainOnMasks[pin]){
+	if(TIE & ectMainOnMasks[pin]){
 		// If configured to do something specific
-		if(*injectorMainControlRegisters[pin] & injectorMainActiveMasks[pin]){
+		if(*ectMainControlRegisters[pin] & ectMainActiveMasks[pin]){
 			// If that something is go high
-			if(*injectorMainControlRegisters[pin] & injectorMainGoHighMasks[pin]){
+			if(*ectMainControlRegisters[pin] & ectMainGoHighMasks[pin]){
 				// GO HIGH SHOULD DO NOTHING CEPT COUNTER
 				// if too close, do nothing, or if far enough away, resched
 				// for now just always do nothing as it's going to fire, and whatever configured got it close enough...
@@ -123,12 +136,12 @@ void schedulePortTPin(unsigned char outputEventNumber, LongTime timeStamp){
 				// if too close, resched to turn, ie, stay on... , if far enough away, self sched
 				if(newStartIsAfterOutputEndTimeAndCanSelfSet){
 					// self sched
-					injectorMainStartOffsetHolding[pin] = startTime - *injectorMainTimeRegisters[pin];
+					ectMainStartOffsetHolding[pin] = startTime - *ectMainTimeRegisters[pin];
 					outputEventPulseWidthsHolding[pin] = outputEventPulseWidthsMath[outputEventNumber];
 					outputEventExtendNumberOfRepeatsHolding[pin] = outputEventExtendNumberOfRepeats[outputEventNumber];
 					outputEventExtendRepeatPeriodHolding[pin] = outputEventExtendRepeatPeriod[outputEventNumber];
 					outputEventDelayFinalPeriodHolding[pin] = outputEventDelayFinalPeriod[outputEventNumber];
-					selfSetTimer |= injectorMainOnMasks[pin]; // setup a bit to let the timer interrupt know to set its own new start from a var
+					selfSetTimer |= ectMainOnMasks[pin]; // setup a bit to let the timer interrupt know to set its own new start from a var
 					Counters.pinScheduledToSelfSchedule++;
 				}else{
 					SCHEDULE_ONE_ECT_OUTPUT();
@@ -136,7 +149,7 @@ void schedulePortTPin(unsigned char outputEventNumber, LongTime timeStamp){
 				}
 			}
 		}else{ // Configured to do nothing, or toggle
-			if(*injectorMainControlRegisters[pin] & injectorMainGoHighMasks[pin]){
+			if(*ectMainControlRegisters[pin] & ectMainGoHighMasks[pin]){
 				// TOGGLE SHOULD EARN SOME SORT OF ERROR CONDITION/COUNTER
 				Counters.pinScheduledToToggleError++;
 			}else{

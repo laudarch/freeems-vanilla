@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2010 Sean Keys, Fred Cooke
+ * Copyright 2010 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -32,6 +32,8 @@
  *
  * Because we need to call the assembly flash burning function from C code an
  * extern function declaration is required to allow successful compilation.
+ *
+ * @author Sean Keys
  */
 #ifndef FILE_XGATEVECTORS_H_SEEN
 #define FILE_XGATEVECTORS_H_SEEN
@@ -66,13 +68,13 @@ typedef struct {
 } xgateIntVector;
 
 // This statement imports the symbol from the xgate ASM for use in the vector table
-extern void xgateSchedule(); // extern not EXTERN because it is defined outside of C
-extern void xgatePITTurnOff();
-extern void xgatePITTurnOn();
-extern void xgateDelayCounter();
-extern void startXGATECode();
-extern void endXGATECode();
-extern void parameterGuard(); /* counter that gets update when a write to shared RAM begins and again when the write is complete */
+void xgateSchedule();
+void xgatePITTurnOff();
+void xgatePITTurnOn();
+void xgateDelayCounter();
+void startXGATECode();
+void endXGATECode();
+void parameterGuard(); /* counter that gets update when a write to shared RAM begins and again when the write is complete */
 
 EXTERN const xgateIntVector xgateIntVectorTable[121];
 

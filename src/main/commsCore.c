@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2014 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -62,21 +62,6 @@
  */
 unsigned short populateBasicDatalog(){
 	/// @todo TODO setup proper sequence and clock with some sort of differential measurement log to log. insert in front of actual data because these are part of the log itself.
-
-	// Log scheduling data by default for the time being.
-	CoreVars->DTPS = Counters.normalSchedule;
-	CoreVars->DMAP = Counters.timerStretchedToSchedule;
-//	CoreVars->DRPM = ?; currently in use logging *ticksPerDegree 27 December 2012, see line ~123 of coreVarsGenerator.c
-//	CoreVars->DDRPM = ?;
-
-	KeyUserDebugs.zsp3 = Counters.pinScheduledToGoHigh;
-	KeyUserDebugs.zsp4 = Counters.pinScheduledAlready;
-	KeyUserDebugs.zsp5 = Counters.pinScheduledToSelfSchedule;
-	KeyUserDebugs.zsp6 = Counters.pinScheduledAgainToStayOn;
-	KeyUserDebugs.zsp7 = Counters.pinScheduledToToggleError;
-	KeyUserDebugs.zsp8 = Counters.pinScheduledToDoNothing;
-	KeyUserDebugs.zsp9 = Counters.pinScheduledFromCold;
-	KeyUserDebugs.zsp10 = Counters.pinScheduledWithTimerExtension;
 
 	KeyUserDebugs.coreStatusA = coreStatusA;
 	KeyUserDebugs.clockIn8thsOfAMilli = Clocks.realTimeClockMain;
@@ -152,9 +137,6 @@ unsigned short populateBasicDatalog(){
  * process. It configures the pos/neg ack header bit, adds the code if neg,
  * runs a checksum over the packet data and tags it to the end before
  * configuring the various ISRs that need to send the data out.
- *
- * @bug http://issues.freeems.org/view.php?id=81
- * @todo TODO fix the double/none start byte bug and remove the hack!
  */
 void finaliseAndSend(unsigned short errorID){
 
@@ -419,19 +401,31 @@ void decodePacketAndRespond(){
 			}
 
 			unsigned short zeroCounter;
-			unsigned char* counterPointer = (char*) &Counters;
+			unsigned char* counterPointer;
+
+			counterPointer = (unsigned char*) &Counters;
 			for(zeroCounter = 0;zeroCounter < sizeof(Counter);zeroCounter++){
 				*counterPointer = 0;
 				counterPointer++;
 			}
+
 			KeyUserDebugs.flaggableFlags = 0;
-			unsigned char* flaggablePointer = (char*) &Flaggables;
+			counterPointer = (unsigned char*) &Flaggables;
 			for(zeroCounter = 0;zeroCounter < sizeof(Flaggable);zeroCounter++){
-				*flaggablePointer = 0;
-				flaggablePointer++;
+				*counterPointer = 0;
+				counterPointer++;
+			}
+
+			KeyUserDebugs.flaggableFlags2 = 0;
+			counterPointer = (unsigned char*) &Flaggables2;
+			for(zeroCounter = 0;zeroCounter < sizeof(Flaggable2);zeroCounter++){
+				*counterPointer = 0;
+				counterPointer++;
 			}
 			break;
 		}
+		case requestBuiltByName:
+		case requestSupportEmail:
 		case requestDecoderName:
 		case requestFirmwareBuildDate:
 		case requestCompilerVersion:
@@ -444,6 +438,12 @@ void decodePacketAndRespond(){
 
 			unsigned char* stringToSend = 0;
 			switch (RXHeaderPayloadID) {
+				case requestBuiltByName:
+					stringToSend = (unsigned char*)builtByName;
+					break;
+				case requestSupportEmail:
+					stringToSend = (unsigned char*)supportEmail;
+					break;
 				case requestDecoderName:
 					stringToSend = (unsigned char*)decoderName;
 					break;
@@ -489,7 +489,7 @@ void decodePacketAndRespond(){
 			lookupBlockDetails(locationID, &details);
 
 			// Don't let anyone write to running variables unless we are running BenchTest firmware!
-			if((details.flags & block_is_read_only) && compare((char*)&decoderName, BENCH_TEST_NAME, sizeof(BENCH_TEST_NAME))){
+			if((details.flags & block_is_read_only) && compare((unsigned char*)&decoderName, (unsigned char*)BENCH_TEST_NAME, sizeof(BENCH_TEST_NAME))){
 				errorID = attemptToWriteToReadOnlyBlock;
 				break;
 			}
@@ -1138,7 +1138,7 @@ void decodePacketAndRespond(){
 		case startBenchTestSequence:
 		{
 			// see TODO on include at top and modify this line appropriately
-			if(!(compare((char*)&decoderName, BENCH_TEST_NAME, sizeof(BENCH_TEST_NAME)))){
+			if(!(compare((unsigned char*)&decoderName, (unsigned char*)BENCH_TEST_NAME, sizeof(BENCH_TEST_NAME)))){
 				if(RXCalculatedPayloadLength < 1){
 					errorID = payloadLengthTypeMismatch;
 					break;
@@ -1157,11 +1157,16 @@ void decodePacketAndRespond(){
 
 					// Ensure we succeed at stopping it as quickly as possible.
 					ATOMIC_START();
+					// Stash mid-test details for return
+					*((unsigned short*)TXBufferCurrentPositionHandler) = testNumberOfCycles;        // Save and return the remaining cycle count
+					TXBufferCurrentPositionHandler +=2;
+					*((unsigned char*)TXBufferCurrentPositionHandler) = KeyUserDebugs.currentEvent; // Save the current event for the ultra-fussy
+					TXBufferCurrentPositionHandler++;
+					// Setup the test to stop ASAP
 					KeyUserDebugs.currentEvent = testEventsPerCycle - 1; // Gets incremented then compared with testEventsPerCycle
 					testNumberOfCycles = 1;                              // Gets decremented then compared with zero
 					ATOMIC_END();
 
-					// eventually save and return where it got to
 					break;
 				}else if((localTestMode == TEST_MODE_BUMP_UP_CYCLES) && (RXCalculatedPayloadLength == 2)){
 					if(!(coreStatusA & BENCH_TEST_ON)){
@@ -1182,6 +1187,10 @@ void decodePacketAndRespond(){
 					testNumberOfCycles += bumpCycles;
 					// Given that this function is only for situations when A it's getting near to
 					// zero and B the user is watching, not checking for overflow is reasonable.
+
+					*((unsigned char*)TXBufferCurrentPositionHandler) = bumpCycles; // Return the bump size for achaelogical purposes
+					TXBufferCurrentPositionHandler++;
+
 					break;
 				}else if((localTestMode == TEST_MODE_ITERATIONS) && (RXCalculatedPayloadLength == 24)){
 					testMode = localTestMode;
@@ -1196,8 +1205,12 @@ void decodePacketAndRespond(){
 					break;
 				}
 
+				// Parse the values and return all but the test packet type
+
 				testEventsPerCycle = *((unsigned char*)RXBufferCurrentPosition); //100;  // @ 10ms  =  1s
 				RXBufferCurrentPosition++;
+				*((unsigned char*)TXBufferCurrentPositionHandler) = testEventsPerCycle;
+				TXBufferCurrentPositionHandler++;
 				if(testEventsPerCycle == 0){
 					errorID = invalidEventsPerCycle;
 					break;
@@ -1205,6 +1218,8 @@ void decodePacketAndRespond(){
 
 				testNumberOfCycles = *((unsigned short*)RXBufferCurrentPosition); //20;   // @ 1s    = 20s
 				RXBufferCurrentPosition += 2;
+				*((unsigned short*)TXBufferCurrentPositionHandler) = testNumberOfCycles;
+				TXBufferCurrentPositionHandler +=2;
 				if(testNumberOfCycles == 0){
 					errorID = invalidNumberOfCycles;
 					break;
@@ -1212,6 +1227,8 @@ void decodePacketAndRespond(){
 
 				testTicksPerEvent = *((unsigned short*)RXBufferCurrentPosition); //12500; // @ 0.8us = 10ms
 				RXBufferCurrentPosition += 2;
+				*((unsigned short*)TXBufferCurrentPositionHandler) = testTicksPerEvent;
+				TXBufferCurrentPositionHandler +=2;
 				if(testTicksPerEvent < decoderMaxCodeTime){
 					errorID = tooShortOfAnEventPeriod;
 					break;
@@ -1222,6 +1239,8 @@ void decodePacketAndRespond(){
 				RXBufferCurrentPosition += 6;
 				unsigned short* testPulseWidths = (unsigned short*)RXBufferCurrentPosition;
 				RXBufferCurrentPosition += 12;
+				memcpy((void*)TXBufferCurrentPositionHandler, (void*)testEventNumbers, 18);
+				TXBufferCurrentPositionHandler += 18;
 
 				// Reset the clock for reading timeout
 				Clocks.timeoutADCreadingClock = 0; // make this optional, such that we can use real inputs to determine pw and/or dwell.
@@ -1230,7 +1249,7 @@ void decodePacketAndRespond(){
 				unsigned char channel;
 				unsigned char configuredChannels = 6;
 				for(channel = 0;channel < 6;channel++){
-					if(testPulseWidths[channel] > injectorSwitchOnCodeTime){ // See next block for warning.
+					if(testPulseWidths[channel] > ectSwitchOnCodeTime){ // See next block for warning.
 						// use as-is
 						outputEventDelayFinalPeriod[channel] = decoderMaxCodeTime;
 						outputEventPulseWidthsMath[channel] = testPulseWidths[channel];
@@ -1384,200 +1403,6 @@ void decodePacketAndRespond(){
 }
 
 
-/** @brief Send an error if buffer free
- *
- * This is a wrapper for use outside the communication handler function. The error will only be sent if the buffer is empty and available, if not, it will be discarded.
- *
- * @warning Use of this function signifies that the error you are trying to propagate is not urgent and can be forgotten.
- *
- * @note Consider not throwing an error if it seems appropriate to use this.
- *
- * @todo TODO this is only used in coreVarGen, such errors should be caught at init time, NOT runtime, fix that...
- *
- * @param errorID is the error ID to be passed out to listening devices.
- */
-void sendErrorIfClear(unsigned short errorID){
-	if(!TXBufferInUseFlags){
-		TXBufferInUseFlags = ONES;
-		sendErrorInternal(errorID);
-	}else{
-		FLAG_AND_INC_FLAGGABLE(FLAG_COMMS_ERROR_MESSAGES_NOT_SENT_OFFSET);
-	}
-}
-
-
-/* not currently used...
- *  @brief Send an error even if we must wait
- *
- * This is a wrapper for use outside the communication handler function. This
- * function will block until the error is able to be sent. This behaviour is
- * not recommended as it will interfere with engine operation somewhat.
- *
- * @warning Use of this function signifies that the error you are trying to propagate is extremely urgent and can not be forgotten.
- *
- * @note Using this function blocks other main loop code from execution. Consider handling the error in another way if it seems appropriate to use this.
- *
- * @param errorID is the error ID to be passed out to listening devices.
- */
-//void sendErrorBusyWait(unsigned short errorID){
-//	while(TXBufferInUseFlags){} /* Wait till clear to send */
-//	TXBufferInUseFlags = ONES;
-//	sendErrorInternal(errorID);
-//}
-
-
-/** @brief Send an error
- *
- * This function is only for use inside the communication handling function.
- * Use of it outside this environment is not supported and behaviour when used
- * as such is undefined.
- *
- * @warning ONLY use this function from within the communication handler.
- *
- * @see sendErrorIfClear()
- * @see sendErrorBusyWait()
- *
- * @todo TODO clean up the mess of commented out crap in here!
- * @todo TODO decide on errorCode or errorID and consistencise it everywhere.
- *
- * @param errorID is the error ID to be passed out to listening devices.
- */
-void sendErrorInternal(unsigned short errorID){
-//	set buffer in use, consider blocking interrupts to do this cleanly
-
-
-	//	TXBufferInUseFlags = 0;
-	/* No need for atomic block here as one of two conditions will always be */
-	/* true when calling this. Either we have been flagged to receive and    */
-	/* decode a packet, or we are in an ISR. In either case it is safe to    */
-	/* check the flags and initiate the sequence if they are clear.          */
-//	if(RXTXSerialStateFlags & TX_IN_PROGRESS){
-		/* It's OK to return without resetting as it will be done by */
-		/* either of those processes if they are underway. The other */
-		/* processes are not overridden because they have priority.  */
-//		return;
-//	}else{ /* Turn off reception */
-		/* It's OK to turn this off if nothing was currently being received */
-//		SCI0CR2 &= SCICR2_RX_ISR_DISABLE;
-//		SCI0CR2 &= SCICR2_RX_DISABLE;
-
-		/* Build up the packet */
-		/* Set the pointer to the start */
-		TXBufferCurrentPositionHandler = (unsigned char*)&TXBuffer;
-		/* Set the length */
-//		TXPacketLengthToSend = 5; /* Flags + Payload ID + Error Code */
-		// Flags = empty
-		*TXBufferCurrentPositionHandler = 0x00;
-		TXBufferCurrentPositionHandler++;
-		/* Set the payload ID */
-		*((unsigned short*)TXBufferCurrentPositionHandler) = asyncErrorCodePacket;
-		TXBufferCurrentPositionHandler += 2;
-
-		finaliseAndSend(errorID);
-//	}
-}
-
-
-/** @brief Send a debug message if buffer free
- *
- * This is a wrapper for use outside the communication handler function. The debug message will only be sent if the buffer is empty and available, if not, it will be discarded.
- *
- * @note This function exists as a convenience to developers, do not publish code that calls this function.
- *
- * @param message is a pointer to the null terminated debug message string.
- */
-void sendDebugIfClear(unsigned char* message){
-	if(!TXBufferInUseFlags){
-		TXBufferInUseFlags = ONES;
-		sendDebugInternal(message);
-	}else{
-		FLAG_AND_INC_FLAGGABLE(FLAG_COMMS_DEBUG_MESSAGES_NOT_SENT_OFFSET);
-	}
-}
-
-
-/** Send a debug message even if we must wait
- *
- * This is a wrapper for use outside the communication handler function. This
- * function will block until the debug message is able to be sent.
- *
- * @note This function exists as a convenience to developers, do not publish code that calls this function.
- *
- * @param message is a pointer to the null terminated debug message string.
- */
-//void sendDebugBusyWait(unsigned char* message){
-//	while(TXBufferInUseFlags){} /* Wait till clear to send */
-//	TXBufferInUseFlags = ONES;
-//	sendDebugInternal(message);
-//}
-
-
-/** @brief Send a debug message
- *
- * Sends a null terminated debug message out on the broadcast address of all available interfaces.
- *
- * @warning ONLY use this function from within the communication handler.
- *
- * @see sendDebugIfClear()
- * @see sendDebugBusyWait()
- *
- * @note This function exists as a convenience to developers, do not publish code that calls this function.
- *
- * @todo TODO clean up the mess of commented out crap in here!
- *
- * @param message is a pointer to the null terminated debug message string.
- */
-void sendDebugInternal(unsigned char* message){
-
-//	set buffer in use, consider blocking interrupts to do this cleanly
-
-//	if(TRUE){
-//		Counters.serialDebugUnsentCounter++;
-//		return;
-//	}
-	// wrong :
-	/* No need for atomic block here as one of two conditions will always be */
-	/* true when calling this. Either we have been flagged to receive and    */
-	/* decode a packet, or we are in an ISR. In either case it is safe to    */
-	/* check the flags and initiate the sequence if they are clear.          */
-	//if(RXTXSerialStateFlags & TX_IN_PROGRESS){
-		// wrong :
-		/* It's OK to return without resetting as it will be done by */
-		/* either of those processes if they are underway. The other */
-		/* processes are not overridden because they have priority.  */
-		//TXBufferInUseFlags = 0;
-		//return;
-//	}else{ /* Turn off reception */
-		/* It's OK to turn this off if nothing was currently being received */
-	//	SCI0CR2 &= SCICR2_RX_ISR_DISABLE;
-	//	SCI0CR2 &= SCICR2_RX_DISABLE;
-
-		/* Build up the packet */
-		/* Set the pointer to the start and init the length */
-		TXBufferCurrentPositionHandler = (unsigned char*)&TXBuffer;
-
-		/* Load a protocol with length header into the TX buffer ready for masking */
-		*TXBufferCurrentPositionHandler = 0x11;
-		TXBufferCurrentPositionHandler++;
-
-		/* Set the payload ID */
-		*((unsigned short*)TXBufferCurrentPositionHandler) = asyncDebugInfoPacket;
-		TXBufferCurrentPositionHandler += 2;
-
-		/* Store the length location */
-		unsigned short* TXLength = (unsigned short*)TXBufferCurrentPositionHandler;
-		TXBufferCurrentPositionHandler += 2;
-
-		/* Copy the string into place and record the length copied */
-		unsigned short messageLength = stringCopy(TXBufferCurrentPositionHandler, message);
-		*TXLength = messageLength;
-		TXBufferCurrentPositionHandler += messageLength;
-
-		finaliseAndSend(0);
-	//}
-}
-
-
 /* This function should be period limited to about 10 seconds internally (or by scheduler) */
 //void checkCountersAndSendErrors(){
 	// compare time stamps  with current time stamps and execute if old enough. (if no scheduler)
@@ -1595,46 +1420,5 @@ void sendDebugInternal(unsigned char* message){
 	// need to figure out how to queue received packets for processing when we are currently sending stuff out.
 
 	// above notes don't belong here really.
-//}
-
-
-//void prepareDatalog(){
-//	// send data log by default otherwise
-//	unsigned char chunksExpected = 8; // based on configuration, yet to determine how to calculate this number
-//	unsigned char chunksLoaded = 0;
-//	if ((!receiving) && (datalogMask & rawVarsMask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	if ((!receiving) && (datalogMask & Mask)) {
-//		//
-//		chunksLoaded++;
-//	}
-//	//	set the length
-//	//	the pointer should be correct already
 //}
 

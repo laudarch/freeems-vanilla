@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -57,6 +57,7 @@
 #include "globalDefines.h"
 #include "scalerDefines.h"
 #include "constantsLibrary.h"
+#include "9S12XDP512flags.h"
 
 /* Include data types at the top as other includes use them */
 #include "generalTypes.h"
@@ -119,6 +120,7 @@ EXTERN Clock Clocks;                  ///< Timer Clocks for various functions.
 EXTERN Counter Counters;              ///< Execution count for various blocks of code.
 EXTERN KeyUserDebug KeyUserDebugs;    ///< Formalised key logging vars in one place.
 EXTERN Flaggable Flaggables;          ///< The single instance of our flaggable struct.
+EXTERN Flaggable2 Flaggables2;        ///< The single instance of our flaggable2 struct.
 
 /** @page bankedRunningVariables Banked Running Variables
  *
@@ -198,7 +200,7 @@ typedef union {
 } Tables2;
 
 typedef union {
-	mainTable VETableMainTertiary;
+	mainTable AirflowTable;
 	mainTable InjectionAdvanceTableMain;
 	SmallTables3 SmallTablesC;
 } Tables3;
@@ -230,7 +232,7 @@ EXTERN unsigned char currentTimeRPage;
 ///* Pointers to main tables to aid readability */
 //EXTERN mainTable* VETableMain;
 //EXTERN mainTable* VETableSecondary;
-//EXTERN mainTable* VETableTertiary;
+//EXTERN mainTable* AirflowTable;
 //EXTERN mainTable* LambdaTable;
 //
 //EXTERN mainTable* IgnitionAdvanceTableMain;

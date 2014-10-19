@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2012 Fred Cooke
+ * Copyright 2012-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -92,6 +92,11 @@
 #define ToyotaNA227kPaRange      (ToyotaNA227kPaMax - ToyotaNA227kPaMin)
 // NOTE: The accuracy of this calibration is highly questionable. Please use the Honda units which is configured above and known to be accurate
 
+/* GM 1bar found on naturally aspirated vehicles. Taken from http://www.robietherobot.com/storm/mapsensor.htm */
+#define GM1BarMin                KPA( 10.0)     /* Pressure read at lowest ADC reading */
+#define GM1BarMax                KPA(105.0)     /* Pressure read at highest ADC reading */
+#define GM1BarRange              (GM1BarMax - GM1BarMin)
+
 /* GM 2bar found on Cyclone Turbo V6 and probably other cars too. TODO These numbers are probably not that accurate... */
 #define GM2BarMin                KPA(  1.5)     /* Pressure read at lowest ADC reading */
 #define GM2BarMax                KPA(200.0)     /* Pressure read at highest ADC reading */
@@ -101,6 +106,11 @@
 #define MPX4100AMin              KPA( 14.0)     /* Pressure read at lowest ADC reading */
 #define MPX4100AMax              KPA(107.5)     /* Pressure read at highest ADC reading */
 #define MPX4100ARange            (MPX4100AMax - MPX4100AMin)
+
+/* www.freescale.com/files/sensors/doc/data_sheet/MPXA6115A.pdf */
+#define MPXA6115AMin             KPA( 10.0)     /* Pressure read at lowest ADC reading */
+#define MPXA6115AMax             KPA(120.0)     /* Pressure read at highest ADC reading */
+#define MPXA6115ARange           (MPXA6115AMax - MPXA6115AMin)
 
 /* www.freescale.com/files/sensors/doc/data_sheet/MPX4250A.pdf */
 #define MPX4250AMin              KPA(  8)       /* Pressure read at lowest ADC reading */
@@ -135,6 +145,7 @@
 // RPM based small table default data
 #define ARRAY_OF_16_RPMS          {  RPM(500), RPM(1000), RPM(1500), RPM(2000), RPM(2500), RPM(3000), RPM(3500), RPM(4000), RPM(4500), RPM(5000), RPM(5500), RPM(6000), RPM(6500), RPM(7000), RPM(7500), RPM(8000)}
 #define ARRAY_OF_16_DIS6_DWELLS   {   T(5.75),   T(5.50),   T(5.25),   T(5.00),   T(4.75),   T(4.50),   T(4.25),   T(4.00),   T(3.75),   T(3.50),   T(3.25),   T(3.00),   T(2.75),   T(2.50),   T(2.25),   T(2.00)}
+#define ARRAY_OF_16_BLENDS        {  SHORTMAX,  SHORTMAX,  SHORTMAX,   LR(1.5),   LR(1.0),   LR(0.5),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0),   LR(0.0)} // Hacky... TODO migrate TPS to full range and reuse that here too...
 
 // TODO YAGNI currently unused space fillers
 #define ARRAY_OF_16_TIMES         {     0,  4096,  8192, 12288, 16384, 20480, 24576, 28672, 32768, 36864, 40960, 45056, 49152, 53248, 57344, 61440}

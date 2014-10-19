@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2014 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -51,6 +51,8 @@
 
 /// Decoder and scheduling settings
 typedef struct {
+	unsigned char syncConfirmationsRunning;  ///< Upon losing sync while already running, how many sync points are required to consider resync achieved. This should be a relatively high number.
+	unsigned char syncConfirmationsStarting; ///< Upon losing sync while starting, before having gained sync for the first time, how many sync points are required to consider initial sync achieved. This should be a near-zero for fast starts.
 	unsigned short accelerationInputEventTimeTolerance; ///< This will be replaced: http://issues.freeems.org/view.php?id=118
 	unsigned short decelerationInputEventTimeTolerance; ///< This will be replaced: http://issues.freeems.org/view.php?id=118
 	unsigned short missingToothTolerance; ///< The future of this variable is uncertain!
@@ -109,10 +111,10 @@ typedef struct {
 
 /// Fuel injection settings
 typedef struct {
-	unsigned short perCylinderVolume;  ///< 500cc = 0.5l 0.5 * 32768 = pcv, so divide by 32768 go get litres */
-	unsigned short injectorFlow;       ///< Injector flow of 240cc/min / 60 is 4ml/second is multiplied by 1024, so divide by 1024 for ml/second, divide by 1000 for litres/second */
-	unsigned short stoichiometricAFR;  ///< 34 for hydrogen, all others less, figure is 14.7 * 1024, divide by 1024 to get AFR */
-	unsigned short densityOfFuelAtSTP; ///< 703gm/litre for Octane. 32 * fuel density = number, divide by 32 for the real figure */
+	unsigned short perCylinderVolume;  ///< 500cc = 0.5l 0.5 * 32768 = pcv, so divide by 32768 go get litres.
+	unsigned short injectorFlow;       ///< Injector flow of 240cc/min / 60 is 4ml/second is multiplied by 1024, so divide by 1024 for ml/second, divide by 1000 for litres/second.
+	unsigned short stoichiometricAFR;  ///< 34 for hydrogen, all others less, figure is 14.7 * 1024, divide by 1024 to get AFR.
+	unsigned short densityOfFuelAtSTP; ///< 703gm/litre for Octane. 32 * fuel density = number, divide by 32 for the real figure.
 } engineSetting;
 
 
@@ -125,9 +127,9 @@ typedef struct {
 /// Settings for coarse bit bang outputs
 typedef struct {
 	unsigned char outputActions[256]; ///< Nothing, On, Off, Toggle for each input event.
-	unsigned char* ports[4];         ///< The addresses of the port control registers.
-	unsigned char  masks[4];         ///< The masks to apply to the ports above.
-	unsigned char numberConfigured;  ///< How many to loop through, max of 4
+	unsigned char* ports[4];          ///< The addresses of the port control registers.
+	unsigned char  masks[4];          ///< The masks to apply to the ports above.
+	unsigned char numberConfigured;   ///< How many to loop through, max of 4
 } coarseBitBangSetting;
 
 
@@ -220,7 +222,7 @@ typedef struct {
 typedef struct {
 	unsigned short readingTimeout; ///< How often an ADC reading MUST occur.
 	unsigned char numberOfADCsToRead;
-	unsigned char spare8bitConfig;
+	unsigned char fuelPumpPrimePeriod;
 } sensorSetting;
 
 
@@ -232,6 +234,7 @@ typedef struct {
 #define ALGO_SPEED_DENSITY 0
 #define ALGO_ALPHA_N       1
 #define ALGO_MAF           2
+#define ALGO_SD_AN_BLEND   3
 
 #define DWELL_BRV   0
 #define DWELL_RPM   1

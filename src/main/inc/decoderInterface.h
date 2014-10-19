@@ -137,6 +137,8 @@ EXTERN unsigned short lastPrimaryTicksPerDegree;
 EXTERN unsigned short lastSecondaryTicksPerDegree;
 EXTERN unsigned long skipEventFlags;
 EXTERN unsigned char numberScheduled; /// @todo TODO remove DEBUG
+EXTERN unsigned char syncConfirmationsRunningCounter;  // TODO move to a struct?
+EXTERN unsigned char syncConfirmationsStartingCounter; // TODO move to a struct?
 
 /// @todo Introduce the concept of sync level to schedule for if NOT synced
 /// @todo and a way of deciding what to do in different sync states
@@ -152,7 +154,7 @@ EXTERN unsigned char numberScheduled; /// @todo TODO remove DEBUG
 #define LAST_PERIOD_VALID    BIT4 ///< Set when second decoder ISR runs post a reset
 #define LAST_MATCH_VALID     BIT5 ///< Missing teeth style decoders set this when a valid match is found
 #define LAST_TPD_VALID       BIT6 ///< Set once sync is found and we've stored a Ticks Per Degree value
-#define DF_SPARE_7           BIT7
+#define OK_TO_SCHEDULE       BIT7 ///< Sync confirmed OK by configured number of checks
 // WARNING: Entire flag var is cleared with loss of sync!
 
 
@@ -173,56 +175,76 @@ EXTERN const unsigned short totalEventAngleRange;  // 720 for a four stroke, 360
 EXTERN const unsigned short decoderMaxCodeTime; // The max of how long the primary and secondary ISRs take to run with worst case scheduling loop time!
 
 
-#define SET_SYNC_LEVEL_TO(SYNC_LEVEL)                             \
-KeyUserDebugs.decoderFlags |= SYNC_LEVEL;                         \
-KeyUserDebugs.syncCaughtOnThisEvent = KeyUserDebugs.currentEvent; // End of macro.
+#define SET_SYNC_LEVEL_TO(SYNC_LEVEL) \
+/* Otherwise caught-on event would be reset constantly */             \
+if(!(KeyUserDebugs.decoderFlags & SYNC_LEVEL)){                       \
+    KeyUserDebugs.decoderFlags |= SYNC_LEVEL;                         \
+    KeyUserDebugs.syncCaughtOnThisEvent = KeyUserDebugs.currentEvent; \
+}                                                                     \
+                                                                      \
+/* Reason for last loss of sync was not timeout (0) */                \
+if(KeyUserDebugs.syncLostWithThisID){                                 \
+    if(syncConfirmationsRunningCounter){                              \
+        syncConfirmationsRunningCounter--;                            \
+    }else{                                                            \
+        KeyUserDebugs.decoderFlags |= OK_TO_SCHEDULE;                 \
+    }                                                                 \
+}else{                                                                \
+    if(syncConfirmationsStartingCounter){                             \
+        syncConfirmationsStartingCounter--;                           \
+    }else{                                                            \
+        KeyUserDebugs.decoderFlags |= OK_TO_SCHEDULE;                 \
+    }                                                                 \
+}                                                                     // End of macro.
 
 
 #define SCHEDULE_ONE_ECT_OUTPUT() \
-if(outputEventExtendNumberOfRepeats[outputEventNumber] > 0){                                                      \
-	*injectorMainControlRegisters[pin] &= injectorMainDisableMasks[pin];                                          \
-	outputEventExtendNumberOfRepeatsRealtime[pin] = outputEventExtendNumberOfRepeats[outputEventNumber];          \
-	outputEventExtendNumberOfRepeatsRealtime[pin]--;                                                              \
-	outputEventExtendRepeatPeriodRealtime[pin] = outputEventExtendRepeatPeriod[outputEventNumber];                \
-	outputEventDelayFinalPeriodRealtime[pin] = outputEventDelayFinalPeriod[outputEventNumber];                  \
-	*injectorMainTimeRegisters[pin] = timeStamp.timeShorts[1] + outputEventExtendRepeatPeriod[outputEventNumber]; \
-	Counters.pinScheduledWithTimerExtension++;                                                                    \
-}else{                                                                                                            \
-	*injectorMainControlRegisters[pin] |= injectorMainEnableMasks[pin];                                           \
-	*injectorMainTimeRegisters[pin] = startTime;                                                                  \
-	Counters.pinScheduledToGoHigh++;                                                                              \
-}                                                                                                                 \
-TIE |= injectorMainOnMasks[pin];                                                                                  \
-TFLG = injectorMainOnMasks[pin];                                                                                  \
-outputEventPulseWidthsRealtime[pin] = outputEventPulseWidthsMath[outputEventNumber];                            \
-selfSetTimer &= injectorMainOffMasks[pin];                                                                        // End of macro block!
+if(outputEventExtendNumberOfRepeats[outputEventNumber] > 0){                                                 \
+	*ectMainControlRegisters[pin] &= ectMainDisableMasks[pin];                                               \
+	outputEventExtendNumberOfRepeatsRealtime[pin] = outputEventExtendNumberOfRepeats[outputEventNumber];     \
+	outputEventExtendNumberOfRepeatsRealtime[pin]--;                                                         \
+	outputEventExtendRepeatPeriodRealtime[pin] = outputEventExtendRepeatPeriod[outputEventNumber];           \
+	outputEventDelayFinalPeriodRealtime[pin] = outputEventDelayFinalPeriod[outputEventNumber];               \
+	*ectMainTimeRegisters[pin] = timeStamp.timeShorts[1] + outputEventExtendRepeatPeriod[outputEventNumber]; \
+	Counters.pinScheduledWithTimerExtension++;                                                               \
+}else{                                                                                                       \
+	*ectMainControlRegisters[pin] |= ectMainEnableMasks[pin];                                                \
+	*ectMainTimeRegisters[pin] = startTime;                                                                  \
+	Counters.pinScheduledToGoHigh++;                                                                         \
+}                                                                                                            \
+TIE |= ectMainOnMasks[pin];                                                                                  \
+TFLG = ectMainOnMasks[pin];                                                                                  \
+outputEventPulseWidthsRealtime[pin] = outputEventPulseWidthsMath[outputEventNumber];                         \
+selfSetTimer &= ectMainOffMasks[pin];                                                                        // End of macro block!
 
 
 #ifdef DECODER_IMPLEMENTATION_C // See above for information on how to set these values up.
 
 /// @todo TODO behave differently depending upon sync level?
 #define SCHEDULE_ECT_OUTPUTS() \
-numberScheduled = 0;                                                                        \
-unsigned char outputEventNumber;                                                            \
-for(outputEventNumber=0;outputEventNumber<fixedConfigs1.schedulingSettings.numberOfConfiguredOutputEvents;outputEventNumber++){ \
-	if(outputEventInputEventNumbers[outputEventNumber] == KeyUserDebugs.currentEvent){      \
-		skipEventFlags &= ~(1UL << outputEventNumber);                                      \
-		schedulePortTPin(outputEventNumber, timeStamp);                                     \
-		numberScheduled++;                                                                  \
-	}else if(skipEventFlags & (1UL << outputEventNumber)){                                  \
-		unsigned char eventBeforeCurrent = 0;                                               \
-		if(KeyUserDebugs.currentEvent == 0){                                                \
-			eventBeforeCurrent = numberOfRealEvents - 1;                                    \
-		}else{                                                                              \
-			eventBeforeCurrent = KeyUserDebugs.currentEvent - 1;                            \
-		}                                                                                   \
-                                                                                            \
-		if(outputEventInputEventNumbers[outputEventNumber] == eventBeforeCurrent){          \
-			schedulePortTPin(outputEventNumber, timeStamp);                                 \
-			numberScheduled++;                                                              \
-		}                                                                                   \
-	}                                                                                       \
-}                                                                                           // End of macro block!
+numberScheduled = 0;                                                                                                                \
+if(KeyUserDebugs.decoderFlags & OK_TO_SCHEDULE){                                                                                    \
+	unsigned char outputEventNumber;                                                                                                \
+	for(outputEventNumber=0;outputEventNumber<fixedConfigs1.schedulingSettings.numberOfConfiguredOutputEvents;outputEventNumber++){ \
+		if(outputEventInputEventNumbers[outputEventNumber] == KeyUserDebugs.currentEvent){                                          \
+			skipEventFlags &= ~(1UL << outputEventNumber);                                                                          \
+			schedulePortTPin(outputEventNumber, timeStamp);                                                                         \
+			numberScheduled++;                                                                                                      \
+		}else if(skipEventFlags & (1UL << outputEventNumber)){                                                                      \
+			unsigned char eventBeforeCurrent = 0;                                                                                   \
+			if(KeyUserDebugs.currentEvent == 0){                                                                                    \
+				eventBeforeCurrent = numberOfRealEvents - 1;                                                                        \
+			}else{                                                                                                                  \
+				eventBeforeCurrent = KeyUserDebugs.currentEvent - 1;                                                                \
+			}                                                                                                                       \
+                                                                                                                                    \
+			if(outputEventInputEventNumbers[outputEventNumber] == eventBeforeCurrent){                                              \
+				schedulePortTPin(outputEventNumber, timeStamp);                                                                     \
+				numberScheduled++;                                                                                                  \
+			}                                                                                                                       \
+		}                                                                                                                           \
+	}                                                                                                                               \
+}                                                                                                                                   // End of macro block!
 
 
 // A value of zero = do nothing
@@ -291,34 +313,34 @@ EXTERN unsigned short outputEventExtendRepeatPeriod[MAX_NUMBER_OF_OUTPUT_EVENTS]
 EXTERN unsigned short outputEventDelayFinalPeriod[MAX_NUMBER_OF_OUTPUT_EVENTS];
 EXTERN unsigned long  outputEventDelayTotalPeriod[MAX_NUMBER_OF_OUTPUT_EVENTS];
 
-EXTERN unsigned short outputEventPulseWidthsHolding[INJECTION_CHANNELS];
-EXTERN unsigned char outputEventExtendNumberOfRepeatsHolding[INJECTION_CHANNELS];
-EXTERN unsigned short outputEventExtendRepeatPeriodHolding[INJECTION_CHANNELS];
-EXTERN unsigned short outputEventDelayFinalPeriodHolding[INJECTION_CHANNELS];
+EXTERN unsigned short outputEventPulseWidthsHolding[ECT_CHANNELS];
+EXTERN unsigned char outputEventExtendNumberOfRepeatsHolding[ECT_CHANNELS];
+EXTERN unsigned short outputEventExtendRepeatPeriodHolding[ECT_CHANNELS];
+EXTERN unsigned short outputEventDelayFinalPeriodHolding[ECT_CHANNELS];
 
-EXTERN unsigned short outputEventPulseWidthsRealtime[INJECTION_CHANNELS];
-EXTERN unsigned char outputEventExtendNumberOfRepeatsRealtime[INJECTION_CHANNELS];
-EXTERN unsigned short outputEventExtendRepeatPeriodRealtime[INJECTION_CHANNELS];
-EXTERN unsigned short outputEventDelayFinalPeriodRealtime[INJECTION_CHANNELS];
+EXTERN unsigned short outputEventPulseWidthsRealtime[ECT_CHANNELS];
+EXTERN unsigned char outputEventExtendNumberOfRepeatsRealtime[ECT_CHANNELS];
+EXTERN unsigned short outputEventExtendRepeatPeriodRealtime[ECT_CHANNELS];
+EXTERN unsigned short outputEventDelayFinalPeriodRealtime[ECT_CHANNELS];
 
-EXTERN unsigned short injectorMainStartOffsetHolding[INJECTION_CHANNELS];
+EXTERN unsigned short ectMainStartOffsetHolding[ECT_CHANNELS];
 
 
 
 /* Register addresses */
-EXTERN volatile unsigned short * volatile injectorMainTimeRegisters[INJECTION_CHANNELS]; // Static during a run, setup at init, shouldn't be in RAM, FIXME
-EXTERN volatile unsigned char * volatile injectorMainControlRegisters[INJECTION_CHANNELS]; // Static during a run, setup at init, shouldn't be in RAM, FIXME
+EXTERN volatile unsigned short * volatile ectMainTimeRegisters[ECT_CHANNELS]; // Static during a run, setup at init, shouldn't be in RAM, FIXME
+EXTERN volatile unsigned char * volatile ectMainControlRegisters[ECT_CHANNELS]; // Static during a run, setup at init, shouldn't be in RAM, FIXME
 
 
 /* Timer holding vars (init not required) */
-EXTERN unsigned long injectorMainEndTimes[INJECTION_CHANNELS]; // Used for scheduling calculations
+EXTERN unsigned long ectMainEndTimes[ECT_CHANNELS]; // Used for scheduling calculations
 /* Channel latencies (init not required) */
-EXTERN unsigned short injectorCodeLatencies[INJECTION_CHANNELS]; // Used for injector control in a dysfunctional way.
+EXTERN unsigned short ectCodeLatencies[ECT_CHANNELS]; // Used for output control in a dysfunctional way.
 
 
 /* Code time to run variables (init not required) */
-EXTERN unsigned short injectorCodeOpenRuntimes[INJECTION_CHANNELS]; // Stats only, remove or change to something accessible
-EXTERN unsigned short injectorCodeCloseRuntimes[INJECTION_CHANNELS]; // Stats only, remove or change to something accessible
+EXTERN unsigned short ectCodeOpenRuntimes[ECT_CHANNELS]; // Stats only, remove or change to something accessible
+EXTERN unsigned short ectCodeCloseRuntimes[ECT_CHANNELS]; // Stats only, remove or change to something accessible
 
 
 /// @todo TODO Perhaps use some of the space freed by shrinking all timing tables for this:
@@ -328,10 +350,10 @@ EXTERN unsigned short injectorCodeCloseRuntimes[INJECTION_CHANNELS]; // Stats on
 
 
 // Helpers - force all these to be inlined!
-EXTERN void decoderInitPreliminary(void);
-EXTERN void perDecoderReset(void);
-EXTERN void resetToNonRunningState(unsigned char uniqueLossID);
-EXTERN void schedulePortTPin(unsigned char pin, LongTime timeStamp);
+void decoderInitPreliminary(void);
+void perDecoderReset(void);
+void resetToNonRunningState(unsigned char uniqueLossID);
+void schedulePortTPin(unsigned char pin, LongTime timeStamp);
 /** @todo TODO add shared function here that takes a long time stamp and stores
  * it in an array pointed to by a var with a flag saying "do it or not",
  * populate array entry, check pointer, set send flag, and unset record flag OR

@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2014 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -43,23 +43,14 @@
 /* &&&&&&&&&& WARNING &&&&&&&&&& These need to be changed if the timer period is changed at all!! &&&&&&&&&& WARNING &&&&&&&&&& */
 /* TODO It may be better to make these actual times and calculate the number of timer units such that a change in time base of the timer doesn't affect the code. */
 
-/** Serial interface unique identifier
- *
- * This should only change when the serial interface changes (even a little)
- *
- * This field consists of 3 chars for a 3 part version number and a free form string. For any unique string the version
- * number is also unique. In this way tools can easily support a range of versions for a specific unique string ID
- */
-const unsigned char interfaceVersion[INTERFACE_VERSION_LENGTH] = { INTERFACE_VERSION }; // TODO change spec to not have numerics and to parse from string, maybe pull from somewhere?
 
-/** Displayable firmware version identifier
- *
- * This should change every time the code is changed at all (even a little) before each release.
- */
-const unsigned char firmwareVersion[FIRMWARE_VERSION_LENGTH] = { FIRMWARE_VERSION "-" BUILD_CONFIG }; // TODO shorten the comments here, add docs and refer to them
-const unsigned char buildTimeAndDate[FIRMWARE_BUILD_DATE_LENGTH] = { FIRMWARE_BUILD_DATE }; ///< GCC supplied compiler version
-const unsigned char compilerVersion[COMPILER_VERSION_LENGTH] = { __VERSION__ };             ///< GCC supplied compiler version
-const unsigned char operatingSystem[OPERATING_SYSTEM_LENGTH] = { OPERATING_SYSTEM };        ///< Operating system type
+const unsigned char interfaceVersion[INTERFACE_VERSION_LENGTH] = { INTERFACE_VERSION };               ///< @copydoc interfaceVersion TODO change spec to not have numerics and to parse from string, maybe pull from somewhere?
+const unsigned char firmwareVersion[FIRMWARE_VERSION_LENGTH] = { FIRMWARE_VERSION "-" BUILD_CONFIG }; ///< @copydoc firmwareVersion
+const unsigned char buildTimeAndDate[FIRMWARE_BUILD_DATE_LENGTH] = { FIRMWARE_BUILD_DATE };           ///< @copydoc buildTimeAndDate
+const unsigned char compilerVersion[COMPILER_VERSION_LENGTH] = { __VERSION__ };                       ///< @copydoc compilerVersion
+const unsigned char operatingSystem[OPERATING_SYSTEM_LENGTH] = { OPERATING_SYSTEM };                  ///< @copydoc operatingSystem
+const unsigned char builtByName[BUILT_BY_NAME_LENGTH] = { BUILT_BY_NAME };                            ///< @copydoc builtByName
+const unsigned char supportEmail[SUPPORT_EMAIL_LENGTH] = { SUPPORT_EMAIL };                           ///< @copydoc supportEmail
 
 /** Divisors and untunable physical constants combined into a single master fuel constant
  *
@@ -91,12 +82,12 @@ const unsigned long masterFuelConstant = 139371764;
  */
 const unsigned long MAFFuelConstant = 0;
 
-/// @todo TODO Move these to decoder interface AND rename to be more generic/meaningful/accurate, and make set by each decoder where appropriate
-///* Injection limits */
+/// @todo TODO Move these to decoder interface, and make set by each decoder where appropriate
+///* ECT limits */
 /* The number of timer units it takes for the switch on scheduling code to run + latencies */
-const unsigned short injectorSwitchOnCodeTime = 250; /* Used to set min pw in output ISR. 250 is based on worst of decoders causing latencies. */
+const unsigned short ectSwitchOnCodeTime = 250; /* Used to set min pw in output ISR. 250 is based on worst of decoders causing latencies. */
 /* The number of timer units it takes for the switch off scheduling code to run + latencies */
-const unsigned short injectorSwitchOffCodeTime = 250; /* Used to see if we should set self sched or not. 250 is based on worst of decoders causing latencies. */
+const unsigned short ectSwitchOffCodeTime = 250; /* Used to see if we should set self sched or not. 250 is based on worst of decoders causing latencies. */
 
 // TODO put these where they belong, just dumped from other file for now...
 /* Main injector channel bit masks and registers for use in both injection_isrs.c and engine_position_isrs.c */
@@ -115,15 +106,15 @@ const unsigned short injectorSwitchOffCodeTime = 250; /* Used to see if we shoul
 /* Injection masks */
 
 // To be used with flag vars and TIE and TFLG
-const unsigned char injectorMainOnMasks[INJECTION_CHANNELS] = {BIT2,  BIT3,  BIT4,  BIT5,  BIT6,  BIT7};
-const unsigned char injectorMainOffMasks[INJECTION_CHANNELS] = {NBIT2, NBIT3, NBIT4, NBIT5, NBIT6, NBIT7};
+const unsigned char ectMainOnMasks[ECT_CHANNELS] = {BIT2,  BIT3,  BIT4,  BIT5,  BIT6,  BIT7};
+const unsigned char ectMainOffMasks[ECT_CHANNELS] = {NBIT2, NBIT3, NBIT4, NBIT5, NBIT6, NBIT7};
 
 // To be used in conjunction with injectorMainControlRegisters
-const unsigned char injectorMainActiveMasks[INJECTION_CHANNELS] = {BIT5, BIT7, BIT1, BIT3, BIT5, BIT7};      // Is this enabled for go high OR go low?
-const unsigned char injectorMainEnableMasks[INJECTION_CHANNELS] = {0x30, 0xC0, 0x03, 0x0C, 0x30, 0xC0};      // Regardless of state, mask to enable and cause to go high
-const unsigned char injectorMainDisableMasks[INJECTION_CHANNELS] = {0xCF, 0x3F, 0xFC, 0xF3, 0xCF, 0x3F};     // Regardless of state, mask to disable completely
-const unsigned char injectorMainGoHighMasks[INJECTION_CHANNELS] = {BIT4, BIT6, BIT0, BIT2, BIT4, BIT6};      // Already enabled, mask to change from go low to go high
-const unsigned char injectorMainGoLowMasks[INJECTION_CHANNELS] = {NBIT4, NBIT6, NBIT0, NBIT2, NBIT4, NBIT6}; // Already enabled, mask to change from go high to go low
+const unsigned char ectMainActiveMasks[ECT_CHANNELS] = {BIT5, BIT7, BIT1, BIT3, BIT5, BIT7};      // Is this enabled for go high OR go low?
+const unsigned char ectMainEnableMasks[ECT_CHANNELS] = {0x30, 0xC0, 0x03, 0x0C, 0x30, 0xC0};      // Regardless of state, mask to enable and cause to go high
+const unsigned char ectMainDisableMasks[ECT_CHANNELS] = {0xCF, 0x3F, 0xFC, 0xF3, 0xCF, 0x3F};     // Regardless of state, mask to disable completely
+const unsigned char ectMainGoHighMasks[ECT_CHANNELS] = {BIT4, BIT6, BIT0, BIT2, BIT4, BIT6};      // Already enabled, mask to change from go low to go high
+const unsigned char ectMainGoLowMasks[ECT_CHANNELS] = {NBIT4, NBIT6, NBIT0, NBIT2, NBIT4, NBIT6}; // Already enabled, mask to change from go high to go low
 
 
 

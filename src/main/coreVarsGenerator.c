@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -51,19 +51,13 @@ void generateCoreVars(){
 	// Battery Reference Voltage
 	unsigned short localBRV;
 	if(!(fixedConfigs2.sensorSources.BRV)){
-/// @todo TODO WARNING: HACK!!! Remove ASAP!!! IE, As Soon As Preston (get's a new cpu on the TA card!)
-#if CONFIG == HOTEL_ID
-		localBRV = (((unsigned long)ADCBuffers->MAT * fixedConfigs2.sensorRanges.BRVRange) / ADC_DIVISIONS) + fixedConfigs2.sensorRanges.BRVMinimum;
-#else
 		localBRV = (((unsigned long)ADCBuffers->BRV * fixedConfigs2.sensorRanges.BRVRange) / ADC_DIVISIONS) + fixedConfigs2.sensorRanges.BRVMinimum;
-#endif
 	}else if(fixedConfigs2.sensorSources.BRV == SOURCE_PRESET){
 		localBRV = fixedConfigs2.sensorPresets.presetBRV;
 	}else if(fixedConfigs2.sensorSources.BRV == SOURCE_LINEAR){
 		localBRV = (ADCBuffers->BRV * 14) + VOLTS(7.2); // 0 ADC = 7.2V, 1023 ADC = 21.522C
 	}else{ // Default to normal alternator charging voltage 14.4V
 		localBRV = VOLTS(14.4);
-		sendErrorIfClear(BRV_NOT_CONFIGURED_CODE); // TODO FIXME better error collecting mechanism needed
 	}
 
 	// Coolant/Head Temperature
@@ -76,7 +70,6 @@ void generateCoreVars(){
 		localCHT = (ADCBuffers->CHT * 10) + DEGREES_C(0); // 0 ADC = 0C, 1023 ADC = 102.3C
 	}else{ // Default to slightly cold and therefore rich: 65C
 		localCHT = DEGREES_C(65);
-		sendErrorIfClear(CHT_NOT_CONFIGURED_CODE); // TODO FIXME better error collecting mechanism needed
 	}
 
 	// Inlet Air Temperature
@@ -89,7 +82,6 @@ void generateCoreVars(){
 		localIAT = (ADCBuffers->IAT * 10) + DEGREES_C(0); // 0 ADC = 0C, 1023 ADC = 102.3C
 	}else{ // Default to room temperature
 		localIAT = DEGREES_C(20);
-		sendErrorIfClear(IAT_NOT_CONFIGURED_CODE); // TODO FIXME better error collecting mechanism needed
 	}
 
 	// Throttle Position Sensor

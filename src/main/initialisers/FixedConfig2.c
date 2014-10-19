@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -80,6 +80,9 @@ const volatile fixedConfig2 fixedConfigs2 FIXEDCONF2 = {
 #elif CONFIG == DEUCECOUPE_ID
 		MAPMinimum:    MPX4100AMin,
 		MAPRange:      MPX4100ARange,
+#elif CONFIG == DEUCES10_ID
+		MAPMinimum:    GM1BarMin,
+		MAPRange:      GM1BarRange,
 #else
 		MAPMinimum:    MPX4250AMin,
 		MAPRange:      MPX4250ARange,
@@ -89,12 +92,15 @@ const volatile fixedConfig2 fixedConfigs2 FIXEDCONF2 = {
 		AAPMinimum:    HondaDenso183kPaMin,
 		AAPRange:      HondaDenso183kPaRange,
 #else
-		AAPMinimum:    MPX4100AMin,
-		AAPRange:      MPX4100ARange,
+		AAPMinimum:    MPXA6115AMin,
+		AAPRange:      MPXA6115ARange,
 #endif
 #if CONFIG == SEANKLT1_ID
 		EGOMinimum:    AFR1020LambdaMin,
 		EGORange:      AFR1020LambdaRange,
+#elif CONFIG == SCAVENGER_ID // http://www.schnitzracing.com/manuals/AEMWBK.pdf
+		EGOMinimum:    LAMBDA(0.683),
+		EGORange:      (LAMBDA(1.365) - LAMBDA(0.683)),
 #else
 		EGOMinimum:    LC1LambdaMin,
 		EGORange:      LC1LambdaRange,
@@ -104,23 +110,40 @@ const volatile fixedConfig2 fixedConfigs2 FIXEDCONF2 = {
 		BRVRange:      VOLTS(25.082),
 #elif CONFIG == SNOTROCKET_ID
 		BRVMinimum:    VOLTS(0),
-		BRVRange:      VOLTS(24.777),
+		BRVRange:      VOLTS(24.5), // Shoebox build value: 24.777, reverted to 24.5 for Jaguar build.
+#elif CONFIG == DEUCES10_ID
+		BRVMinimum:    VOLTS(0),
+		BRVRange:      VOLTS(24.65), // This is calibrated for the Jaguar A2 in the 1997 S10 on 01-12-2013.
 #else
 		BRVMinimum:    VOLTS(0),
 		BRVRange:      VOLTS(24.5), // Standard 3.9k and 1k values.
 #endif
+#if CONFIG == DEUCECOUPE_ID  // This is calibrated for the Deuce Coupe TPS.
+		TPSMinimumADC: 81,  // This is to correct for the TPS reading at closed throttle.
+		TPSMaximumADC: 574  // This is to correct for the TPS reading at wide open throttle.
+
+#elif CONFIG == DEUCES10_ID   // This is an estimate for the S10 TPS.
+		TPSMinimumADC: 120,  // This is to correct for the TPS reading at closed throttle.
+		TPSMaximumADC: 560  // This is to correct for the TPS reading at wide open throttle.
+#elif CONFIG == SNOTROCKET_ID
+		TPSMinimumADC: 185,
+		TPSMaximumADC: 809
+#else
 		TPSMinimumADC: 0,
 		TPSMaximumADC: ADC_MAX_VALUE
+#endif
 	},
 	sensorSettings:{ // Warning, until the following mods are made to ADC use, setting this lower than your cranking rpm will result in a pulsing fuel pump.
 		readingTimeout: 500, /** Default to 0.5 of a second 120rpm for a 4 cylinder @todo TODO new method of ADC sampling, Always sample ADC async, If no sync, use async ADC readings, otherwise use synced. Do this with pointer to array set at beginning of math */
 		numberOfADCsToRead: 8,
-		spare8bitConfig: 0
+		fuelPumpPrimePeriod: 4 // Currently in seconds, may switch units later. Must be at least 1 and at most 60.
 	},
 	algorithmSettings:{
 		loadType:      LOAD_MAP,
 		algorithmType: ALGO_SPEED_DENSITY,
 #if CONFIG == DEUCECOUPE_ID
+		dwellType:     DWELL_RPM,
+#elif CONFIG == DEUCES10_ID
 		dwellType:     DWELL_RPM,
 #elif CONFIG == SEANKLT1_ID
 		dwellType:     DWELL_FIXED,
@@ -139,7 +162,7 @@ const volatile fixedConfig2 fixedConfigs2 FIXEDCONF2 = {
 //		ReducedDrive:      0x00, // Unused right now
 
 		PWMEnable:         0xFF, // Enable all PWM channels by default
-		PWMPolarity:       0x00, // Default to "duty is high portion" for all pins
+		PWMPolarity:       0xFF, // Default to "duty is high portion" for all pins
 		PWMClock:          0x00, // The fastest we can go for all channels
 		PWMClockPrescaler: 0x00, // The fastest prescaler we can go for all channels
 		PWMCenterAlign:    0x00, // Default to left aligned
@@ -196,10 +219,15 @@ const volatile fixedConfig2 fixedConfigs2 FIXEDCONF2 = {
 		PortDirectionT: 0xFF  // Ignored! TODO: Overridden for precision timed outputs
 	},
 	decoderSettings:{
+		syncConfirmationsRunning: 10, // This number is arbitrary, add an if block and configure to taste.
+		syncConfirmationsStarting: 0, // Most users should leave this zero, however having it set to 1 or 2 could be beneficial
 #if CONFIG == HOTEL_ID
 		accelerationInputEventTimeTolerance: ACCEL_TIME_TOL(100), // once started this needs a lot less... fix
 		decelerationInputEventTimeTolerance: DECEL_TIME_TOL(100),
 #elif CONFIG == SNOTROCKET_ID
+		accelerationInputEventTimeTolerance: ACCEL_TIME_TOL(100),
+		decelerationInputEventTimeTolerance: DECEL_TIME_TOL(100),
+#elif CONFIG == SCAVENGER_ID
 		accelerationInputEventTimeTolerance: ACCEL_TIME_TOL(100),
 		decelerationInputEventTimeTolerance: DECEL_TIME_TOL(100),
 #else
@@ -221,5 +249,5 @@ const volatile fixedConfig2 fixedConfigs2 FIXEDCONF2 = {
 			"to the state of tune and configuration of settings. Lastly, please "
 			"remember that this field WILL be shrinking in length from it's "
 			"currently large size to something more reasonable in future. I would "
-			"like to attempt to keep it at least thirty two characters long "
+			"like to attempt to keep it at least thirty two characters lon"
 };

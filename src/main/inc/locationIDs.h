@@ -1,6 +1,6 @@
 /* FreeEMS - the open source engine management system
  *
- * Copyright 2008-2012 Fred Cooke
+ * Copyright 2008-2013 Fred Cooke
  *
  * This file is part of the FreeEMS project.
  *
@@ -42,8 +42,8 @@
 #define VETableMain2LocationID                         0x0001
 #define VETableSecondaryLocationID                     0x0002
 #define VETableSecondary2LocationID                    0x0003
-#define VETableTertiaryLocationID                      0x0004
-#define VETableTertiary2LocationID                     0x0005
+#define AirflowTableLocationID                         0x0004
+#define AirflowTable2LocationID                        0x0005
 #define LambdaTableLocationID                          0x0006
 #define LambdaTable2LocationID                         0x0007
 /* Timing tables */
@@ -75,6 +75,8 @@
 #define engineTempEnrichmentTablePercent2LocationID    0x010B
 #define dwellVersusRPMTableLocationID                  0x010C
 #define dwellVersusRPMTable2LocationID                 0x010D
+#define blendVersusRPMTableLocationID                  0x010E
+#define blendVersusRPMTable2LocationID                 0x010F
 
 #ifdef BLOCK_DETAILS_LOOKUP_C // only for here, external stuff should use the flags field for determining what to do/not do.
 #define TwoDTableUS_SmallTableFullBlocks_Border        0x3000
@@ -169,6 +171,7 @@
 #define CountersLocationID                             0xF004
 #define ClocksLocationID                               0xF005
 #define FlaggablesLocationID                           0xF006
+#define Flaggables2LocationID                          0xF007
 
 
 #else
